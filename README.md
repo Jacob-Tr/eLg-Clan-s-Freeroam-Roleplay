@@ -6,5 +6,5 @@ Features:
 &emsp;File Handling  
 &emsp;/vehicle command
   
-01/01/22 -  
-&emsp;/giveweapon
+* 01/01/22 -  
+  /giveweapon
