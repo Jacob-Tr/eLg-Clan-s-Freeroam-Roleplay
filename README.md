@@ -3,7 +3,7 @@ Port of the classic SA-MP server to RageMP.
 
 Features:
 25/12/21 -  
-    ->File Handling  
+    →File Handling  
     -/vehicle command
   
 01/01/22 -  
