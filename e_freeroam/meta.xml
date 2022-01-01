@@ -1,0 +1,4 @@
+﻿<meta>
+	<info name="e_freeroam" description="eLg Clan's Freeroam/Roleplay" />
+	<script src="bin/x64/Release/netcoreapp3.1/e_freeroam.dll" />
+</meta>
