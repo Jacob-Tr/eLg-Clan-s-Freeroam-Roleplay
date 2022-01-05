@@ -5,6 +5,7 @@ namespace e_freeroam
 {
     public class Main : Script
     {
+
         [ServerEvent(Event.ResourceStart)]
         public void OnGamemodeInit()
         {
