@@ -7,7 +7,7 @@ Features:
     /vehicle command
   
 * 01/01/22 -  
-    /giveweapon command
+    /giveweapon command  
     Chat colors
     
 * 06/01/22 -  
