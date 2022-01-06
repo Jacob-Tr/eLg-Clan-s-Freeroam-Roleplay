@@ -8,7 +8,8 @@ Features:
   
 * 01/01/22 -  
     /giveweapon command  
-    Chat colors
+    Chat colors  
+    Custom chat
     
 * 06/01/22 -  
     Key-press detection  
