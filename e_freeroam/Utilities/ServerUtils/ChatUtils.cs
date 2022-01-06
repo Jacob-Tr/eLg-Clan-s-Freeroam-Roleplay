@@ -10,13 +10,13 @@ namespace e_freeroam.Utilities
             foreach (Player player in NAPI.Pools.GetAllPlayers()) sendClientMessage(player, getColorAsHex(Utilities.ServerUtils.ServerData.COLOR_ADMIN_NOTES_LOG), str);
         }
 
-        public static void sendClientMessage(Player player, string colorHex, string text)
+        public static void sendClientMessage(Player player, GTANetworkAPI.Color color, string text)
         {
-            text = colorString(text, colorHex);
+            text = colorString(text, getColorAsHex(color));
             player.SendChatMessage(text);
         }
 
-        public static void sendClientMessageToAll(string colorHex, string text) {foreach(Player player in NAPI.Pools.GetAllPlayers()) sendClientMessage(player, colorHex, text);}
+        public static void sendClientMessageToAll(GTANetworkAPI.Color color, string text) {foreach(Player player in NAPI.Pools.GetAllPlayers()) sendClientMessage(player, color, text);}
 
         public static string getColorAsHex(GTANetworkAPI.Color color) {return $"#{color.Blue:X2}{color.Green:X2}{color.Red:X2}";}
     
