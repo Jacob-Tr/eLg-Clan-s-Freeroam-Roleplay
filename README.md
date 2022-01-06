@@ -11,5 +11,5 @@ Features:
     Chat colors
     
 * 06/01/22 -  
-    Key-press detection
+    Key-press detection  
     /me & /do
