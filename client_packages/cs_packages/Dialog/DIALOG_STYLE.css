@@ -1,0 +1,93 @@
+html 
+{
+	height: 100%;
+	width: 100%;
+}
+
+body {margin: 25% 20% 25% 20%;}
+
+.Dialog
+{
+	height: 18vh;
+	width: 20vw;
+	
+	margin: auto;
+	
+	background-color: rgba(0, 0, 0, 0.8);
+	color: #fff;
+	
+	font-family: "Arial";
+}
+
+.DialogCaption
+{
+	height: 3vh;
+	width: 20vw;
+	
+	background-color: #000;
+	color: #fff;
+	
+	font: 18px;
+	font-weight: bold;
+}
+
+.DialogCaptionText 
+{
+	margin-left: 0.5em;
+}
+
+.DialogText
+{
+	height: 2vh;
+	width: 20vw;
+	
+	margin-top: 0em;
+	margin-left: 1.4em;
+	
+	color: 77BBAA;
+	
+	font: 14px;
+	font-weight: bold;
+}
+
+.DialogBox
+{
+	width: 97%;
+	height: 25%;
+	
+	margin-top: 0.9em;
+	margin-left: 0.3em;
+	
+	border-radius: 8px;
+	border-color: #fff;
+	
+	color: #fff;
+	background-color: #000;
+}
+
+.DialogButton
+{
+	height: 1.7em;
+	width: 6em;
+	
+	margin-top: 0.3em;
+	
+	border-radius: 10px;
+	border-color:#fff;
+	
+	background-color: #000;
+	color: #fff;
+	
+	font-weight: bold;
+	font-size: 18px;
+}
+
+.DialogAccept
+{
+	margin-left: 1em;
+}
+
+.DialogCancel
+{
+	margin-left: 0.6em;
+}
