@@ -10,6 +10,6 @@ Features:
     /giveweapon command
     Chat colors
     
-* 06/01/22 -
+* 06/01/22 -  
     Key-press detection
     /me & /do
