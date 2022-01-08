@@ -3,21 +3,25 @@ using System.IO;
 using GTANetworkAPI;
 using e_freeroam.Utilities.ServerUtils;
 using e_freeroam.Objects;
+using e_freeroam.Utilities;
 
 namespace e_freeroam
 {
     public class Main : Script
     {
+        FileHandler serverHandler = null;
 
         [ServerEvent(Event.ResourceStart)]
         public void OnGamemodeInit()
         {
+            serverHandler = new FileHandler(FileTypes.SERVER, ServerData.getDefaultServerDir() + "ServerData\\", "Vehicles.ini");
+            serverHandler.loadFile();
         }
 
         [ServerEvent(Event.ResourceStop)]
         public void OnGamemodeExit()
         {
-
+            serverHandler.saveFile();
         }
 
         [ServerEvent(Event.PlayerConnected)]
