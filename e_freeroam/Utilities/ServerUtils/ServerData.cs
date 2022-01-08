@@ -1,4 +1,5 @@
-﻿using GTANetworkAPI;
+﻿using e_freeroam.Objects;
+using GTANetworkAPI;
 using System.Collections.Generic;
 
 namespace e_freeroam.Utilities.ServerUtils
@@ -233,18 +234,28 @@ namespace e_freeroam.Utilities.ServerUtils
         public const int maxKeys = 100;
         public const int maxVehicles = 1000;
 
-        public static List<Vehicle> serverVehicles = new List<Vehicle>(maxVehicles);
+        private static string serverDir = "scriptfiles\\";
+
+        public static List<Vehicle2> serverVehicles = new List<Vehicle2>(maxVehicles);
 
         public static int getKeyValue(Utilities.ServerUtils.KeyRef refID) {return keys[(int) refID];}
 
-        public static int addVehicle(Vehicle vehicle) 
+        public static int addVehicle(Vehicle newVehicle, VehicleType type=VehicleType.CMD_VEHICLE) 
         {
+            Vehicle2 vehicle = new Vehicle2(newVehicle, type);
+
             serverVehicles.Add(vehicle);
             return serverVehicles.FindIndex(target => target == vehicle);
         }
         public static void removeVehicle(int vehicleid) {serverVehicles.RemoveAt(vehicleid);}
-        public static int getVehicleID(Vehicle vehicle) {return serverVehicles.FindIndex(target => target == vehicle);}
+        public static int getVehicleID(Vehicle2 vehicle) {return serverVehicles.FindIndex(target => target == vehicle);}
 
-        public static string getDefaultServerDir() {return "scriptfiles\\";}
+        public static Vehicle2 getVehicleObject(Vehicle vehicle)
+        {
+            foreach(Vehicle2 veh in serverVehicles) if(veh.getVehicle().Equals(vehicle)) return veh;
+            return null;
+        }
+
+        public static string getDefaultServerDir() {return serverDir;}
     }
 }

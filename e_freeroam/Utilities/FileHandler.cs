@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using e_freeroam.Utilities.ServerUtils;
 
 namespace e_freeroam.Utilities
 {
@@ -12,15 +13,15 @@ namespace e_freeroam.Utilities
         bool empty = true;
         int fileLen = 0;
         const int maxFileLen = 500;
-        Utilities.ServerUtils.FileTypes fileType;
+        FileTypes fileType;
 
-        public FileHandler(Utilities.ServerUtils.FileTypes type, string directory, string fileName)
+        public FileHandler(FileTypes type, string directory, string fileName)
         {
             if(directory == null) directory = "";
 
             this.fileType = type;
 
-            this.dir = Utilities.ServerUtils.ServerData.getDefaultServerDir() + '\\' + directory;
+            this.dir = ServerData.getDefaultServerDir() + '\\' + directory;
             this.file = directory + '\\' + fileName + ".ini";
         }
 
@@ -118,7 +119,7 @@ namespace e_freeroam.Utilities
                 line = null;
             }
 
-            for (int i = 0; i < Utilities.ServerUtils.ServerData.maxKeys; i++)
+            for (int i = 0; i < ServerData.maxKeys; i++)
             {
                 string key = this.keys[i];
                 if (key == "NULL") continue;
@@ -138,7 +139,7 @@ namespace e_freeroam.Utilities
             StreamWriter writer = null;
             writer = new StreamWriter(this.file);
 
-            for(int i = 0; i < Utilities.ServerUtils.ServerData.maxKeys; i++)
+            for(int i = 0; i < ServerData.maxKeys; i++)
             {
                 string key = this.keys[i];
 
@@ -149,12 +150,12 @@ namespace e_freeroam.Utilities
                     break;
                 }
 
-                if (this.fileType == Utilities.ServerUtils.FileTypes.PLAYER)
+                if (this.fileType == FileTypes.PLAYER)
                 {
-                    try {Enum.Parse(typeof(Utilities.ServerUtils.PlayerDataInfo), key);}
+                    try {Enum.Parse(typeof(PlayerDataInfo), key);}
                     catch(ArgumentException e) {continue;}
                 }
-                if (this.fileType == Utilities.ServerUtils.FileTypes.SERVER)
+                if (this.fileType == FileTypes.SERVER)
                 {
                     try {Enum.Parse(typeof(Utilities.ServerUtils.ServerDataInfo), key);}
                     catch (ArgumentException e) {continue;}

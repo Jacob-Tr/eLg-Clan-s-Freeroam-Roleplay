@@ -7,7 +7,7 @@ namespace e_freeroam.Utilities
         public static void sendMessageToAdmins(string str)
         {
             NAPI.Util.ConsoleOutput(str);
-            foreach (Player player in NAPI.Pools.GetAllPlayers()) sendClientMessage(player, getColorAsHex(Utilities.ServerUtils.ServerData.COLOR_ADMIN_NOTES_LOG), str);
+            foreach (Player player in NAPI.Pools.GetAllPlayers()) sendClientMessage(player, Utilities.ServerUtils.ServerData.COLOR_ADMIN_NOTES_LOG, str);
         }
 
         public static void sendClientMessage(Player player, GTANetworkAPI.Color color, string text)

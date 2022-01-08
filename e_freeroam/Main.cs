@@ -1,5 +1,8 @@
 ﻿using System;
+using System.IO;
 using GTANetworkAPI;
+using e_freeroam.Utilities.ServerUtils;
+using e_freeroam.Objects;
 
 namespace e_freeroam
 {
@@ -9,7 +12,6 @@ namespace e_freeroam
         [ServerEvent(Event.ResourceStart)]
         public void OnGamemodeInit()
         {
-
         }
 
         [ServerEvent(Event.ResourceStop)]
@@ -43,33 +45,101 @@ namespace e_freeroam
         }
 
         [ServerEvent(Event.PlayerEnterVehicleAttempt)]
-        public void OnPlayerEnterVehicleAttempt(Player player, Vehicle vehicle, sbyte seatID)
+        public void OnPlayerEnterVehicleAttempt(Player player, Vehicle veh, sbyte seatID)
         {
-
+            Vehicle2 vehicle = ServerData.getVehicleObject(veh);
         }
 
         [ServerEvent(Event.PlayerEnterVehicle)]
-        public void OnPlayerEnterVehicle(Player player, Vehicle vehicle, sbyte seatID)
+        public void OnPlayerEnterVehicle(Player player, Vehicle veh, sbyte seatID)
         {
+            Vehicle2 vehicle = ServerData.getVehicleObject(veh);
 
+            if(seatID == 0)
+            {
+                if(vehicle.getEngineStatus()) vehicle.startEngine();
+                else vehicle.stopEngine();
+            }
         }
 
         [ServerEvent(Event.PlayerExitVehicle)]
-        public void OnPlayerExitVehicle(Player player, Vehicle vehicle)
+        public void OnPlayerExitVehicle(Player player, Vehicle veh)
         {
+            Vehicle2 vehicle = ServerData.getVehicleObject(veh);
 
+            if(player.VehicleSeat == 0)
+            {
+                if(vehicle.getEngineStatus()) vehicle.startEngine();
+                else vehicle.stopEngine();
+            }
         }
 
         [ServerEvent(Event.VehicleDamage)]
-        public void OnVehicleTakeDamage(Vehicle vehicle, float bodyHealthLoss, float engineHealthLoss)
+        public void OnVehicleTakeDamage(Vehicle veh, float bodyHealthLoss, float engineHealthLoss)
+        {
+            Vehicle2 vehicle = ServerData.getVehicleObject(veh);
+        }
+
+        [ServerEvent(Event.VehicleDeath)]
+        public void OnVehicleDeath(Vehicle veh)
+        {
+            Vehicle2 vehicle = ServerData.getVehicleObject(veh);
+        }
+
+        [RemoteEvent("OnKeyPress")]
+        public void KeyPressEvent(Player player, int key)
         {
 
         }
 
-        [ServerEvent(Event.VehicleDeath)]
-        public void OnVehicleDeath(Vehicle vehicle)
+        [RemoteEvent("OnKeyRelease")]
+        public void KeyReleaseEvent(Player player, int key)
         {
+            if(key == ServerData.getKeyValue(KeyRef.N_KEY))
+            {
+                if(player.IsInVehicle && player.VehicleSeat == 0)
+                {
+                    Vehicle playerVeh = player.Vehicle;
+                    Vehicle2 vehicle = ServerData.getVehicleObject(playerVeh);
 
+                    bool engineStatus = vehicle.getEngineStatus();
+
+                    string output = null;
+                    Color color;
+
+                    if(!engineStatus)
+                    {
+                        vehicle.startEngine();
+
+                        output = "~ Engine turned on.";
+                        color = ServerData.COLOR_GREEN;
+                    }
+                    else
+                    {
+                        vehicle.stopEngine();
+
+                        output = "~ Engine turned off.";
+                        color = ServerData.COLOR_WHITE;
+                    }
+
+                    Utilities.ChatUtils.sendClientMessage(player, color, output);
+                }
+
+                return;
+            }
+
+            if (key == ServerData.getKeyValue(KeyRef.TWO_KEY))
+            {
+                if (player.IsInVehicle && player.VehicleSeat == 0)
+                {
+                    Vehicle playerVeh = player.Vehicle;
+                    bool engineStatus = NAPI.Vehicle.GetVehicleEngineStatus(playerVeh);
+
+                    Utilities.ChatUtils.sendClientMessage(player, ServerData.COLOR_RED, engineStatus ? "On" : "Off");
+                }
+
+                return;
+            }
         }
     }
 }

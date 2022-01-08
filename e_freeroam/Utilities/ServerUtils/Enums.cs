@@ -20,6 +20,13 @@
         NULL
     }
 
+    public enum VehicleType
+    {
+        SERVER_VEHICLE,
+        CMD_VEHICLE,
+        JOB_VEHICLE,
+        SCHOOL_VEHICLE
+    }
 
     public enum KeyRef
     {
