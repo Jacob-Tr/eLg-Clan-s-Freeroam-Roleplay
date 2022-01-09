@@ -9,19 +9,25 @@ namespace e_freeroam
 {
     public class Main : Script
     {
-        FileHandler serverHandler = null;
-
         [ServerEvent(Event.ResourceStart)]
         public void OnGamemodeInit()
         {
-            serverHandler = new FileHandler(FileTypes.SERVER, ServerData.getDefaultServerDir() + "ServerData\\", "Vehicles.ini");
-            serverHandler.loadFile();
+            ServerData.loadVehicles();
         }
 
         [ServerEvent(Event.ResourceStop)]
         public void OnGamemodeExit()
         {
-            serverHandler.saveFile();
+            FileStream file = File.OpenWrite("Test2.txt");
+            StreamWriter writer = new StreamWriter(file);
+
+            writer.WriteLine("Lol");
+
+            writer.Flush();
+            file.Close();
+
+
+            ServerData.saveVehicles();
         }
 
         [ServerEvent(Event.PlayerConnected)]

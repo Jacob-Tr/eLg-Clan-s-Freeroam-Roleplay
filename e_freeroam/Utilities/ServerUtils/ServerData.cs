@@ -1,5 +1,6 @@
 ﻿using e_freeroam.Objects;
 using GTANetworkAPI;
+using System;
 using System.Collections.Generic;
 
 namespace e_freeroam.Utilities.ServerUtils
@@ -231,24 +232,126 @@ namespace e_freeroam.Utilities.ServerUtils
             0xFE // CLEAR_KEY (#:191)
         };
 
-        public const int maxKeys = 100;
-        public const int maxVehicles = 1000;
+        public const int maxKeys = 100, maxVehicles = 1000;
+        private static int vehicles = 0, serverVehicleCount = 0;
 
         private static string serverDir = "scriptfiles\\";
 
-        public static List<Vehicle2> serverVehicles = new List<Vehicle2>(maxVehicles);
+        private static List<Vehicle2> serverVehicles = new List<Vehicle2>(maxVehicles);
+        private static FileHandler vehicleHandler = null;
 
         public static int getKeyValue(Utilities.ServerUtils.KeyRef refID) {return keys[(int) refID];}
 
-        public static int addVehicle(Vehicle newVehicle, VehicleType type=VehicleType.CMD_VEHICLE) 
+        public static FileHandler getVehicleHandler() {return vehicleHandler;}
+        public static void loadVehicles()
         {
+            vehicleHandler = new FileHandler(FileTypes.VEHICLE, getDefaultServerDir() + "ServerData", "Vehicles");
+            vehicleHandler.loadFile();
+
+            Dictionary<string, string> vehicleDir = vehicleHandler.getInfo();
+
+            string key = null, value = null;
+            string model = null, x = null, y = null, z = null, rotX = null, rotY = null, rotZ = null;
+
+            int index = 0, nextIndex = 0, iteration = 0;
+            uint MODEL = 0;
+
+            float X = 0.0F, Y = 0.0F, Z = 0.0F, ROT_X = 0.0F, ROT_Y = 0.0F, ROT_Z = 0.0F;
+
+            for(int i = 0; i < maxVehicles; i++)
+            {
+                key = ("VEH#" + i);
+                if(vehicleDir.ContainsKey(key))
+                {
+                    iteration++;
+                    vehicleDir.TryGetValue(key, out value);
+
+                    index = value.IndexOf(' ');
+                    model = value.Substring(0, index++);
+
+                    nextIndex = value.IndexOf(' ', index) ;
+                    x = value.Substring(index, (nextIndex++ - index));
+                    index = nextIndex;
+
+                    nextIndex = value.IndexOf(' ', index);
+                    y = value.Substring(index, (nextIndex++ - index));
+                    index = nextIndex;
+
+                    nextIndex = value.IndexOf(' ', index);
+                    z = value.Substring(index, (nextIndex++ - index));
+                    index = nextIndex;
+
+                    nextIndex = value.IndexOf(' ', index);
+                    rotX = value.Substring(index, (nextIndex++ - index));
+                    index = nextIndex;
+
+                    nextIndex = value.IndexOf(' ', index);
+                    rotY = value.Substring(index, (nextIndex++ - index));
+                    index = nextIndex;
+
+                    rotZ = value.Substring(index);
+
+                    Console.WriteLine($"Mod: {model} X: {x} Y: {y} Z: {z} Rot: {rotZ}");
+
+                    MODEL = ((uint)NumberUtils.parseInt(model, model.Length));
+                    X = ((float)Convert.ToDouble(x));
+                    Y = ((float)Convert.ToDouble(y));
+                    Z = ((float)Convert.ToDouble(z));
+                    ROT_X = ((float)Convert.ToDouble(rotX));
+                    ROT_Y = ((float)Convert.ToDouble(rotY));
+                    ROT_Z = ((float)Convert.ToDouble(rotZ));
+
+                    Vector3 vect = new Vector3(X, Y, Z);
+                    Vector3 angle = new Vector3(ROT_X, ROT_Y, ROT_Z);
+
+                    serverVehicleCount++;
+                    addVehicle(MODEL, vect, angle, -1, -1, VehicleType.SERVER_VEHICLE);
+                }
+            }
+            Console.WriteLine($"{iteration} vehicles loaded.");
+        }
+
+        public static void saveVehicles() {vehicleHandler.saveFile();}
+
+        public static bool addVehicleToServer(Vehicle2 vehicle)
+        {
+            if((vehicles + 1) >= maxVehicles) return false;
+
+            Vehicle veh = vehicle.getVehicle();
+            string model = veh.Model.ToString();
+            string line = $"{model} {veh.Position.X} {veh.Position.Y} {veh.Position.Z} {veh.Rotation.X} {veh.Rotation.Y} {veh.Rotation.Z}";
+
+            vehicleHandler.addValue("VEH#" + ++serverVehicleCount, line);
+            return true;
+        }
+
+        public static int addVehicle(uint hashKey, Vector3 vect, Vector3 rot, int color1=-1, int color2=-1, VehicleType type=VehicleType.CMD_VEHICLE) 
+        {
+            if((vehicles + 1) >= maxVehicles) return -1;
+            vehicles++;
+
+            if(rot.Z < 0) rot.Z *= -1;
+
+            Vehicle newVehicle = NAPI.Vehicle.CreateVehicle(hashKey, vect, rot.Z, color1, color2);
+            newVehicle.Rotation.Add(rot);
+
+            ChatUtils.sendMessageToAdmins($"Added vehicle with rot: {rot.Z} then set to vector: {rot.X} {rot.Y} {rot.Z}");
+
+            NAPI.Vehicle.SpawnVehicle(newVehicle, vect);
             Vehicle2 vehicle = new Vehicle2(newVehicle, type);
 
-            serverVehicles.Add(vehicle);
-            return serverVehicles.FindIndex(target => target == vehicle);
+            serverVehicles.Insert(vehicle.getID(), vehicle);
+
+            return getVehicleID(vehicle);
         }
-        public static void removeVehicle(int vehicleid) {serverVehicles.RemoveAt(vehicleid);}
-        public static int getVehicleID(Vehicle2 vehicle) {return serverVehicles.FindIndex(target => target == vehicle);}
+        public static void removeVehicle(int vehicleid) 
+        {
+            Vehicle2 vehicle = serverVehicles[vehicleid];
+            vehicle.getVehicle().Delete();
+
+            serverVehicles.RemoveAt(vehicleid);
+        }
+        public static int getVehicleID(Vehicle2 vehicle) {return vehicle.getVehicle().Id;}
 
         public static Vehicle2 getVehicleObject(Vehicle vehicle)
         {

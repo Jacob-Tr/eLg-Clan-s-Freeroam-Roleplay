@@ -8,8 +8,8 @@ namespace e_freeroam.Utilities
     public class FileHandler
     {
         string file, dir;
-        Dictionary<string, string> fileContent = new Dictionary<string, string>(Utilities.ServerUtils.ServerData.maxKeys);
-        List<string> keys;
+        Dictionary<string, string> fileContent = null;
+        List<string> keys = null;
         bool empty = true;
         int fileLen = 0;
         const int maxFileLen = 500;
@@ -21,15 +21,20 @@ namespace e_freeroam.Utilities
 
             this.fileType = type;
 
-            this.dir = ServerData.getDefaultServerDir() + '\\' + directory;
+            this.dir = directory;
             this.file = directory + '\\' + fileName + ".ini";
+
+            fileContent = new Dictionary<string, string>(ServerData.maxKeys);
+            keys = new List<string>(ServerData.maxKeys);
+
+            for(int i = 0; i < ServerData.maxKeys; i++) keys.Insert(i, "NULL");
         }
 
         public static int getMaxFileLen() { return maxFileLen; }
 
         bool IsEmpty() {return this.empty;}
 
-        public Dictionary<string, string> getInfo() { return this.fileContent; }
+        public Dictionary<string, string> getInfo() {return this.fileContent;}
 
         public bool containsKey(string key) {return this.fileContent.ContainsKey(key);}
 
@@ -44,12 +49,12 @@ namespace e_freeroam.Utilities
         private void editValue(string key, string value) {if(this.containsKey(key)) this.fileContent.Add(key, value);}
         public void addValue(string key, string value)
         {
-            if (!this.containsKey(key) && (this.fileLen < maxFileLen))
+            if(!this.containsKey(key) && (this.fileLen < maxFileLen))
             {
                 this.fileContent.Add(key, value);
-                this.keys[this.fileLen++] = key;
+                this.keys.Insert(this.fileLen++, key);
 
-                if (this.IsEmpty()) this.empty = false;
+                if(this.IsEmpty()) this.empty = false;
             }
             else this.editValue(key, value);
         }
@@ -65,7 +70,7 @@ namespace e_freeroam.Utilities
                 if (i != this.fileLen)
                 {
                     string newVal = this.keys[i + 1];
-                    this.keys[i] = newVal;
+                    this.keys.Insert(i, newVal);
                 }
                 else
                 {
@@ -78,13 +83,14 @@ namespace e_freeroam.Utilities
         void processLine(string line)
         {
             string key, value;
-
-            for (int i = 0; i < line.Length; i++)
+            int index = 0;
+            for(int i = 0; i < line.Length; i++)
             {
-                if (line[i] == '=')
+                if(line[i] == '=')
                 {
                     key = line.Substring(0, i);
-                    if (i != (line.Length - 1)) value = line.Substring((i + 1), line.Length);
+
+                    if(i != (line.Length - 1)) value = line.Substring((i + 1));
                     else value = "null";
 
                     this.addValue(key, value);
@@ -95,7 +101,7 @@ namespace e_freeroam.Utilities
 
         public bool loadFile()
         {
-            if (!File.Exists(this.file)) return false;
+            if(!File.Exists(this.file)) return false;
 
             string line = null;
             StreamReader reader = null;
@@ -109,7 +115,7 @@ namespace e_freeroam.Utilities
             {
                 line = reader.ReadLine();
 
-                if (line == null)
+                if(line == null)
                 {
                     this.empty = (index == 0);
                     break;
@@ -122,7 +128,7 @@ namespace e_freeroam.Utilities
             for (int i = 0; i < ServerData.maxKeys; i++)
             {
                 string key = this.keys[i];
-                if (key == "NULL") continue;
+                if(key == "NULL") continue;
             }
 
             return true;
@@ -132,18 +138,20 @@ namespace e_freeroam.Utilities
         {
             if(!File.Exists(this.file))
             {
-                File.Create(this.dir);
-                File.Create(this.file);
+                System.IO.Directory.CreateDirectory(this.dir);
+                FileStream temp = File.Create(this.file);
+
+                temp.Close();
             }
 
             StreamWriter writer = null;
             writer = new StreamWriter(this.file);
 
-            for(int i = 0; i < ServerData.maxKeys; i++)
+            for (int i = 0; i < ServerData.maxKeys; i++)
             {
                 string key = this.keys[i];
 
-                if(key == "NULL")
+                if (key == "NULL")
                 {
                     writer.Flush();
                     writer.Close();
@@ -155,16 +163,18 @@ namespace e_freeroam.Utilities
                     try {Enum.Parse(typeof(PlayerDataInfo), key);}
                     catch(ArgumentException e) {continue;}
                 }
-                if (this.fileType == FileTypes.SERVER)
+
+                if(this.fileType == FileTypes.SERVER)
                 {
                     try {Enum.Parse(typeof(Utilities.ServerUtils.ServerDataInfo), key);}
                     catch (ArgumentException e) {continue;}
                 }
 
                 string result = null;
+                this.fileContent.TryGetValue(key, out result);
 
                 if (i > 0) writer.Write('\n');
-                writer.Write(key + "=" + this.fileContent.TryGetValue(this.keys[(i)], out result));
+                writer.Write(key + "=" + result);
             }
 
             return true;

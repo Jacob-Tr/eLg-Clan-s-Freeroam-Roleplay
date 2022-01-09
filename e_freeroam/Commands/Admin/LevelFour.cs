@@ -19,13 +19,14 @@ namespace e_freeroam_Commands_Admin
                 return;
             }
 
-            float x = user.Position.X, y = user.Position.Y, z = user.Position.Z, rot = user.Rotation.Z;
+            float x = user.Position.X, y = user.Position.Y, z = user.Position.Z, rot = user.Heading;
 
-            rot += (float)90.0;
             x = (float)(x + (System.Math.Sin((double)-rot) * 5.0));
             y = (float)(y + (System.Math.Cos((double)-rot) * 5.0));
+            rot += (float)90.0;
 
             Vector3 vect = new Vector3(x, y, z);
+            Vector3 angle = new Vector3(50, 50, rot);
 
             if ((color1 > 159 || color1 < 0) || (color2 > 159 || color2 < 0))
             {
@@ -35,10 +36,7 @@ namespace e_freeroam_Commands_Admin
                 if (color2 > 159 || color2 < 0) color2 = colorRand.Next(160);
             }
 
-            Vehicle newVehicle = NAPI.Vehicle.CreateVehicle(hashKey, vect, rot, color1, color2);
-
-            NAPI.Vehicle.SpawnVehicle(newVehicle, vect);
-            ServerData.addVehicle(newVehicle);
+            ServerData.addVehicle(hashKey, vect, angle, color1, color2, VehicleType.CMD_VEHICLE);
 
             user.SendChatMessage(ChatUtils.colorString($"* You have created a {model}.", ChatUtils.getColorAsHex(ServerData.COLOR_WHITE)));
             ChatUtils.sendMessageToAdmins($"{user.Name} has created a {model}.");

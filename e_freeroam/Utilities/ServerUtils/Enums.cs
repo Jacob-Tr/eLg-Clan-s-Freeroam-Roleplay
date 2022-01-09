@@ -4,6 +4,7 @@
     {
         PLAYER,
         SERVER,
+        VEHICLE,
         NULL
     }
 
@@ -26,6 +27,15 @@
         CMD_VEHICLE,
         JOB_VEHICLE,
         SCHOOL_VEHICLE
+    }
+
+    public enum serverVehicleData
+    {
+        MODEL,
+        VEH_X,
+        VEH_Y,
+        VEH_Z,
+        VEH_ROT
     }
 
     public enum KeyRef

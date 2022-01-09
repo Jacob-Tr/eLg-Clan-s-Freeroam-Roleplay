@@ -9,6 +9,7 @@ namespace e_freeroam.Objects
         private Vehicle vehicle = null;
 
         private Vector3 pos = null, spawn = null;
+        private float rot = 0.0F, spawnRot = 0.0F;
 
         private bool engineStatus = false;
 
@@ -17,7 +18,8 @@ namespace e_freeroam.Objects
             this.type = vehType;
             this.vehicle = newVehicle;
 
-            this.spawn = vehicle.Position;
+            this.spawn = this.vehicle.Position;
+            this.spawnRot = this.vehicle.Rotation.Z;
         }
 
         public void startEngine() 
@@ -35,6 +37,7 @@ namespace e_freeroam.Objects
         public VehicleType getVehicleType() {return this.type;}
 
         public Vehicle getVehicle() {return this.vehicle;}
+        public ushort getID() {return this.vehicle.Id;}
 
         public void respawnVeh()
         {

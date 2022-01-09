@@ -1,4 +1,5 @@
-﻿using GTANetworkAPI;
+﻿using e_freeroam.Utilities.ServerUtils;
+using GTANetworkAPI;
 
 namespace e_freeroam.Utilities
 {
@@ -28,17 +29,20 @@ namespace e_freeroam.Utilities
 
 		public static int parseInt(string str, int length)
 		{
+
 			if(length < 1) return 0;
 			if(str.LastIndexOf('.') != -1) return 0;
 
-			bool negative = (str[0] == '-');
-			if(negative)
+			bool negative = false;
+			if (str[0] == '-')
 			{
-				str = str.Remove(0);
+				negative = true;
+
+				str = str.Substring(1);
 				--length;
 			}
 
-			if(!isNumeric(str, str.Length)) return 0;
+			if (!isNumeric(str, length)) return 0;
 
 			int endPos = length - 2, charInt = -1, sum = 0;
 
