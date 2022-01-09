@@ -58,8 +58,9 @@ namespace e_freeroam
             Vector3 pos = player.Position;
             float angle = player.Heading;
 
-            data.updatePlayerHealth(((int) player.Health));
-            data.
+            data.updatePlayerHealth(player.Health);
+            data.updatePlayerArmor(player.Armor);
+            data.updatePlayerPos(pos, angle);
 
             data.getPlayerFileHandler().saveFile();
         }
