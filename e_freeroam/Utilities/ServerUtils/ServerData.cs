@@ -330,14 +330,12 @@ namespace e_freeroam.Utilities.ServerUtils
             if((vehicles + 1) >= maxVehicles) return -1;
             vehicles++;
 
-            if(rot.Z < 0) rot.Z *= -1;
+            //if(rot.Z < 0) rot.Z *= -1;
 
             Vehicle newVehicle = NAPI.Vehicle.CreateVehicle(hashKey, vect, rot.Z, color1, color2);
             newVehicle.Rotation.Add(rot);
 
-            ChatUtils.sendMessageToAdmins($"Added vehicle with rot: {rot.Z} then set to vector: {rot.X} {rot.Y} {rot.Z}");
-
-            NAPI.Vehicle.SpawnVehicle(newVehicle, vect);
+            NAPI.Vehicle.SpawnVehicle(newVehicle, vect, rot.Z);
             Vehicle2 vehicle = new Vehicle2(newVehicle, type);
 
             serverVehicles.Insert(vehicle.getID(), vehicle);
