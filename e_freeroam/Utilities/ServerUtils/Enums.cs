@@ -8,10 +8,16 @@
         NULL
     }
 
-    public enum PlayerDataInfo
+    public enum PlayerInfo
     {
         PASSWORD,
         ADLVL,
+        HEALTH,
+        ARMOR,
+        X,
+        Y,
+        Z,
+        ANGLE,
         NULL
     }
 

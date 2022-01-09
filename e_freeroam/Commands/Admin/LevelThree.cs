@@ -1,4 +1,7 @@
-﻿using GTANetworkAPI;
+﻿using e_freeroam.Utilities;
+using e_freeroam.Utilities.PlayerUtils;
+using e_freeroam.Utilities.ServerUtils;
+using GTANetworkAPI;
 
 namespace e_freeroam.Commands.Admin
 {
@@ -7,6 +10,12 @@ namespace e_freeroam.Commands.Admin
         [Command("giveweapon", "~r~Usage: /giveweapon [Player ID] [Weapon Name] [Ammo]", GreedyArg = true)]
         public void GiveWeapon(Player user, string playeridStr, string weaponName, string ammoStr)
         {
+            if(PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel() < 3)
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                return;
+            }
+
             WeaponHash weapon = NAPI.Util.WeaponNameToModel(weaponName);
             Player player = null;
 
@@ -32,11 +41,11 @@ namespace e_freeroam.Commands.Admin
 
             NAPI.Player.GivePlayerWeapon(player, weapon, ammo);
 
-            string personalMsg = (user == player) ? $"~w~* You have given yourself a {weapon} with {ammo} ammo." : $"~w~* You have given {player.Name} a {weapon} with {ammo} ammo.";
+            string personalMsg = (user == player) ? $"* You have given yourself a {weapon} with {ammo} ammo." : $"~w~* You have given {player.Name} a {weapon} with {ammo} ammo.";
             string adminMsg = (user == player) ? $"{user.Name} has given themself a {weapon} with {ammo} ammo." : $"~w~* {user.Name} has given {player.Name} (ID{playerid}) a {weapon} with {ammo} ammo.";
 
-            user.SendChatMessage(personalMsg);
-            e_freeroam.Utilities.ChatUtils.sendMessageToAdmins(adminMsg);
+            ChatUtils.sendClientMessage(player, ServerData.COLOR_WHITE, personalMsg);
+            ChatUtils.sendMessageToAdmins(ServerData.COLOR_ADMIN_NOTES_LOG, adminMsg);
         }
     }
 }

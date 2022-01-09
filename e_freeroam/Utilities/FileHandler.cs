@@ -160,7 +160,7 @@ namespace e_freeroam.Utilities
 
                 if (this.fileType == FileTypes.PLAYER)
                 {
-                    try {Enum.Parse(typeof(PlayerDataInfo), key);}
+                    try {Enum.Parse(typeof(PlayerInfo), key);}
                     catch(ArgumentException e) {continue;}
                 }
 

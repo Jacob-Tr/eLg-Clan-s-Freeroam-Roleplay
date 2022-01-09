@@ -1,6 +1,7 @@
 ﻿using GTANetworkAPI;
 using e_freeroam.Utilities;
 using e_freeroam.Utilities.ServerUtils;
+using e_freeroam.Utilities.PlayerUtils;
 
 namespace e_freeroam_Commands_Admin
 {
@@ -9,6 +10,12 @@ namespace e_freeroam_Commands_Admin
         [Command("vehicle", "~r~Usage: /vehicle [Vehicle ID] [Color 1] [Color 2]", GreedyArg = true, Alias = "v")]
         public void Vehicle(Player user, string model, string color1Str = "-1", string color2Str = "-1")
         {
+            if(PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel() < 4)
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                return;
+            }
+
             int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, color1Str.Length), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, color2Str.Length); ;
 
             uint hashKey = (uint)NAPI.Util.GetHashKey(model);
@@ -39,7 +46,7 @@ namespace e_freeroam_Commands_Admin
             ServerData.addVehicle(hashKey, vect, angle, color1, color2, VehicleType.CMD_VEHICLE);
 
             user.SendChatMessage(ChatUtils.colorString($"* You have created a {model}.", ChatUtils.getColorAsHex(ServerData.COLOR_WHITE)));
-            ChatUtils.sendMessageToAdmins($"{user.Name} has created a {model}.");
+            ChatUtils.sendMessageToAdmins(ServerData.COLOR_ADMIN_NOTES_LOG, $"{user.Name} has created a {model}.");
         }
     }
 }

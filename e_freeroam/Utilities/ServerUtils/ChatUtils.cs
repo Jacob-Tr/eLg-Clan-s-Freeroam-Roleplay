@@ -4,11 +4,11 @@ namespace e_freeroam.Utilities
 {
     public abstract class ChatUtils
     {
-        public static void sendMessageToAdmins(string str)
+        public static void sendMessageToAdmins(GTANetworkAPI.Color color, string str, bool showLog=true)
         {
-            string output = $"Admin Log: {str}";
+            string output = showLog ? $"Admin Log: {str}" : str;
             NAPI.Util.ConsoleOutput(output);
-            foreach (Player player in NAPI.Pools.GetAllPlayers()) sendClientMessage(player, Utilities.ServerUtils.ServerData.COLOR_ADMIN_NOTES_LOG, output);
+            foreach (Player player in NAPI.Pools.GetAllPlayers()) sendClientMessage(player, color, output);
         }
 
         public static void sendClientMessage(Player player, GTANetworkAPI.Color color, string text)

@@ -4,6 +4,7 @@ using GTANetworkAPI;
 using e_freeroam.Utilities.ServerUtils;
 using e_freeroam.Objects;
 using e_freeroam.Utilities;
+using e_freeroam.Utilities.PlayerUtils;
 
 namespace e_freeroam
 {
@@ -18,28 +19,49 @@ namespace e_freeroam
         [ServerEvent(Event.ResourceStop)]
         public void OnGamemodeExit()
         {
-            FileStream file = File.OpenWrite("Test2.txt");
-            StreamWriter writer = new StreamWriter(file);
-
-            writer.WriteLine("Lol");
-
-            writer.Flush();
-            file.Close();
-
-
             ServerData.saveVehicles();
         }
 
         [ServerEvent(Event.PlayerConnected)]
         public void OnPlayerConnect(Player player)
         {
+            bool newAcc = false;
+            PlayerData data = new PlayerData(player, out newAcc);
+            uint adminLevel = data.getPlayerAdminLevel();
 
+            if(!newAcc)
+            {
+                if (adminLevel > 0)
+                {
+                    ChatUtils.sendClientMessage(player, (adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, $"Admin Level - {adminLevel}");
+                    ChatUtils.sendMessageToAdmins((adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, $"* {player.Name} (ID{player.Value}) has logged in as admin level {adminLevel}.");
+                }
+
+                float angle = 0F;
+                Vector3 pos = data.getPlayerPos(out angle);
+
+                player.Position = pos;
+                player.Heading = angle;
+            }
+            else
+            {
+                ChatUtils.sendClientMessage(player, ServerData.COLOR_YELLOW, $"Account {player.Name} created, you have been logged in automatically!");
+                ChatUtils.sendClientMessageToAll(ServerData.COLOR_GREEN, $"~ {player.Name} has registered a new account. Welcome to our server!");
+            }
         }
 
         [ServerEvent(Event.PlayerDisconnected)]
         public void OnPlayerDisconnect(Player player)
         {
+            PlayerData data = PlayerDataInfo.getPlayerData(player);
 
+            Vector3 pos = player.Position;
+            float angle = player.Heading;
+
+            data.updatePlayerHealth(((int) player.Health));
+            data.
+
+            data.getPlayerFileHandler().saveFile();
         }
 
         [ServerEvent(Event.PlayerSpawn)]

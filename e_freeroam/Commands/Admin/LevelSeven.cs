@@ -1,5 +1,6 @@
 ﻿using e_freeroam.Objects;
 using e_freeroam.Utilities;
+using e_freeroam.Utilities.PlayerUtils;
 using e_freeroam.Utilities.ServerUtils;
 using GTANetworkAPI;
 
@@ -10,7 +11,13 @@ namespace e_freeroam.Commands.Admin
         [Command("addserverv", GreedyArg=false)]
         public void addServerVehicle(Player user)
         {
-            if(!user.IsInVehicle)
+            if(PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel() < 7)
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                return;
+            }
+
+            if (!user.IsInVehicle)
             {
                 ChatUtils.sendClientMessage(user, ServerData.COLOR_RED, "Error: You must be inside a vehicle.");
                 return;
