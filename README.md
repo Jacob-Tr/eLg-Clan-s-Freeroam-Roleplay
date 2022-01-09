@@ -14,3 +14,6 @@ Features:
 * 06/01/22 -  
     Key-press detection  
     /me & /do
+
+* 06/01/22 -  
+    /addserverv
