@@ -17,7 +17,7 @@ namespace e_freeroam.Commands.Admin
                 return;
             }
             ChatUtils.sendClientMessage(user, (adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, "Admin Commands");
-            ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 1 -!{0xFFFFFF} /ac, /kick");
+            ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 1 -!{0xFFFFFF} /ac, /kick, /asay");
             if(adminLevel >= 2)
             {
                 ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 2 -!{0xFFFFFF}");
@@ -79,7 +79,7 @@ namespace e_freeroam.Commands.Admin
             return;
         }
 
-        [Command("ac", GreedyArg=true)]
+        [Command("ac", "~r~Usage: /ac [Text]", GreedyArg=true)]
         public void ac(Player user, string text)
         {
             uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
@@ -90,7 +90,32 @@ namespace e_freeroam.Commands.Admin
             }
 
             string formatText = $"[Admin Chat] [{user.Name}] {text}";
-            ChatUtils.sendMessageToAdmins((adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, formatText, false, user);
+            ChatUtils.sendMessageToAdmins((adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, formatText, false);
+            return;
+        }
+
+        [Command("asay", "~r~/asay [Text]", GreedyArg=true)]
+        public void aSay(Player user, string text)
+        {
+            uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
+            if (adminLevel == 0)
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                return;
+            }
+
+            PlayerData data;
+            uint targetALevel = 0;
+            string formatText = null;
+
+            foreach(Player player in NAPI.Pools.GetAllPlayers())
+            {
+                data = PlayerDataInfo.getPlayerData(player);
+                targetALevel = data.getPlayerAdminLevel();
+
+                formatText = (targetALevel > 0) ? $"* Admin [{user.Name}] [{user.Value}]: {text}" : $"* Admin: {text}";
+                ChatUtils.sendClientMessageToAll((adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, formatText);
+            }
             return;
         }
     }
