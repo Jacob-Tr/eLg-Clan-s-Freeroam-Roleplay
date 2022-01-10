@@ -31,6 +31,8 @@
     <Folder Include="Commands\Organization\Gang\" />
     <Folder Include="Commands\Organization\Private Business\" />
     <Folder Include="Commands\Support Team\Senior\" />
+    <Folder Include="Commands\VIP\LevelTwo\" />
+    <Folder Include="Commands\VIP\LevelThree\" />
   </ItemGroup>
 
 </Project>
