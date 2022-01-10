@@ -19,4 +19,8 @@ Features:
     Start/Stop engine with 'N' key
 
 * 09/01/22 -  
-    /addserverv
+    /addserverv  
+    /commands  
+    /acmds  
+    /ac  
+    /kick
