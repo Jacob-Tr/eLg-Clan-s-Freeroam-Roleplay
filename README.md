@@ -24,3 +24,7 @@ Features:
     /acmds  
     /ac  
     /kick
+
+* 13/01/22 -  
+    /register  
+    /login
