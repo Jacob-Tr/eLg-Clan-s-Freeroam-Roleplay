@@ -5,8 +5,16 @@
         PLAYER,
         SERVER,
         VEHICLE,
+        ORG,
         NULL
     }
+
+	public enum MuteCMDS
+	{
+		ME,
+		DO,
+		AC
+	}
 
     public enum PlayerInfo
     {
@@ -24,6 +32,7 @@
     public enum ServerDataInfo
     {
         WRLDTIME,
+        ORGS,
         NULL
     }
 
@@ -32,7 +41,8 @@
         SERVER_VEHICLE,
         CMD_VEHICLE,
         JOB_VEHICLE,
-        SCHOOL_VEHICLE
+        SCHOOL_VEHICLE,
+        ORG_VEHICLE
     }
 
     public enum serverVehicleData
@@ -42,6 +52,22 @@
         VEH_Y,
         VEH_Z,
         VEH_ROT
+    }
+
+    public enum orgInfo
+    {
+        NAME,
+        X,
+        Y,
+        Z,
+        COLOR,
+        VEHICLES
+    }
+
+    public enum CPType
+    {
+        ORG,
+        NULL
     }
 
     public enum KeyRef

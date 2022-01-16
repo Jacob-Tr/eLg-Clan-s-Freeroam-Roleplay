@@ -1,7 +1,9 @@
 ﻿using e_freeroam.Objects;
+using e_freeroam.Utilities.PlayerUtils;
 using GTANetworkAPI;
 using System;
 using System.Collections.Generic;
+using Checkpoint2 = e_freeroam.Objects.Checkpoint2;
 
 namespace e_freeroam.Utilities.ServerUtils
 {
@@ -232,28 +234,127 @@ namespace e_freeroam.Utilities.ServerUtils
             0xFE // CLEAR_KEY (#:191)
         };
 
-        public const int maxKeys = 100, maxVehicles = 1000;
-        private static int vehicles = 0, serverVehicleCount = 0;
+        public const ushort maxKeys = 100, maxVehicles = 1000, maxOrgs = 12, maxCPs = 1000;
+        private static ushort vehicles = 0, serverVehicleCount = 0; // vehicles: Total of all combined vehicle types, serverVehicleCount: File loaded static vehicles.
+        private static ushort cpCount = 0;
 
-        private static string serverDir = "scriptfiles\\";
+        private static int orgCount = 0, worldTime = 0;
+
+        private static string serverDir = "scriptfiles/";
+
+        private static Dictionary<string, string> serverData = null;
 
         private static List<Vehicle2> serverVehicles = new List<Vehicle2>(maxVehicles);
+        private static List<Organization> orgList = new List<Organization>(maxOrgs);
+        private static List<Checkpoint2> cpList = new List<Checkpoint2>(maxCPs);
+
         private static FileHandler vehicleHandler = null;
+        private static FileHandler serverDataHandler = null;
 
         public static int getKeyValue(Utilities.ServerUtils.KeyRef refID) {return keys[(int) refID];}
+
+        public static List<Vehicle2> getVehiclePool() {return serverVehicles;}
+        public static List<Organization> getOrgPool() {return orgList;}
+        public static List<Checkpoint2> getCPPool() {return cpList;}
+
+        public static void loadServerData()
+        {
+            serverDataHandler = new FileHandler(FileTypes.SERVER, getDefaultServerDir() + "ServerData", "Server");
+
+            if(!serverDataHandler.loadFile())
+            {
+                serverDataHandler.addValue(ServerUtils.ServerDataInfo.WRLDTIME.ToString(), "0");
+                serverDataHandler.addValue(ServerUtils.ServerDataInfo.ORGS.ToString(), "0");
+
+                serverDataHandler.saveFile();
+                serverDataHandler.loadFile();
+                return;
+            }
+
+            serverData = serverDataHandler.getInfo();
+            string value = null;
+
+            serverData.TryGetValue(ServerUtils.ServerDataInfo.WRLDTIME.ToString(), out value);
+            if(serverData.ContainsKey(value)) worldTime = NumberUtils.parseInt(value, value.Length);
+
+            for(sbyte i = 0; i < maxOrgs; i++)
+            {
+                orgList.Insert(i, new Organization(i));
+
+                if(orgList[i].doesOrgExist()) orgCount++;
+                else orgList.Insert(i, null);
+            }
+
+            string orgKey = ServerUtils.ServerDataInfo.ORGS.ToString();
+
+            if(serverData.ContainsKey(orgKey)) serverData.Remove(orgKey);
+            serverData.Add(orgKey, $"{orgCount}");
+
+            Console.WriteLine($"{orgCount} organizations loaded.");
+            return;
+        }
+
+        public static bool addOrg(string name, Player creatingPlayer)
+        {
+            if((orgCount + 1) >= maxOrgs) return false;
+
+            sbyte orgID = ((sbyte) -1);
+            for(sbyte i = 0; i < maxOrgs; i++)
+            {
+                if(!orgList[i].doesOrgExist())
+                {
+                    orgID = i;
+                    break;
+                }
+            }
+            Organization newOrg = new Organization(orgID, creatingPlayer, name);
+            orgList.Insert(orgID, newOrg);
+
+            int count = 0;
+            foreach(Organization org in orgList) {if(org != null) count++;}
+
+            orgCount = count;
+
+            return true;
+        }
+        public static Organization getOrg(int id) {return orgList[id];}
+
+        public static int addCP(Vector3 location, CPType cpType=CPType.NULL)
+        {
+            if((cpCount + 1) > maxCPs) return -1;
+            cpCount++;
+
+            Checkpoint2 newCP = new Checkpoint2(location, cpType);
+
+            int id = newCP.getID();
+
+            cpList.Insert(id, newCP);
+            return id;
+        }
+        public static Checkpoint getCP(int id) {return cpList[id].getCheckpoint();}
+        public static void removeCP(int id) 
+        {
+            Checkpoint2 cp = cpList[id];
+            cpList[id] = null;
+            cp.getCheckpoint().Delete();
+        }
 
         public static FileHandler getVehicleHandler() {return vehicleHandler;}
         public static void loadVehicles()
         {
             vehicleHandler = new FileHandler(FileTypes.VEHICLE, getDefaultServerDir() + "ServerData", "Vehicles");
-            vehicleHandler.loadFile();
+            if(!vehicleHandler.loadFile())
+            {
+                vehicleHandler.saveFile();
+                return;
+            }
 
             Dictionary<string, string> vehicleDir = vehicleHandler.getInfo();
 
             string key = null, value = null;
             string model = null, x = null, y = null, z = null, rotX = null, rotY = null, rotZ = null;
 
-            int index = 0, nextIndex = 0, iteration = 0;
+            int index = 0, nextIndex = 0;
             uint MODEL = 0;
 
             float X = 0.0F, Y = 0.0F, Z = 0.0F, ROT_X = 0.0F, ROT_Y = 0.0F, ROT_Z = 0.0F;
@@ -263,7 +364,6 @@ namespace e_freeroam.Utilities.ServerUtils
                 key = ("VEH#" + i);
                 if(vehicleDir.ContainsKey(key))
                 {
-                    iteration++;
                     vehicleDir.TryGetValue(key, out value);
 
                     index = value.IndexOf(' ');
@@ -291,15 +391,13 @@ namespace e_freeroam.Utilities.ServerUtils
 
                     rotZ = value.Substring(index);
 
-                    Console.WriteLine($"Mod: {model} X: {x} Y: {y} Z: {z} Rot: {rotZ}");
-
                     MODEL = ((uint)NumberUtils.parseInt(model, model.Length));
-                    X = ((float)Convert.ToDouble(x));
-                    Y = ((float)Convert.ToDouble(y));
-                    Z = ((float)Convert.ToDouble(z));
-                    ROT_X = ((float)Convert.ToDouble(rotX));
-                    ROT_Y = ((float)Convert.ToDouble(rotY));
-                    ROT_Z = ((float)Convert.ToDouble(rotZ));
+                    X = NumberUtils.parseFloat(x, x.Length);
+                    Y = NumberUtils.parseFloat(y, y.Length);
+                    Z = NumberUtils.parseFloat(z, z.Length);
+                    ROT_X = NumberUtils.parseFloat(rotX, rotX.Length);
+                    ROT_Y = NumberUtils.parseFloat(rotY, rotY.Length);
+                    ROT_Z = NumberUtils.parseFloat(rotZ, rotZ.Length);
 
                     Vector3 vect = new Vector3(X, Y, Z);
                     Vector3 angle = new Vector3(ROT_X, ROT_Y, ROT_Z);
@@ -308,7 +406,7 @@ namespace e_freeroam.Utilities.ServerUtils
                     addVehicle(MODEL, vect, angle, -1, -1, VehicleType.SERVER_VEHICLE);
                 }
             }
-            Console.WriteLine($"{iteration} vehicles loaded.");
+            Console.WriteLine($"{serverVehicleCount} vehicles loaded.");
         }
 
         public static void saveVehicles() {vehicleHandler.saveFile();}
@@ -331,14 +429,14 @@ namespace e_freeroam.Utilities.ServerUtils
             vehicles++;
 
             Vehicle newVehicle = NAPI.Vehicle.CreateVehicle(hashKey, vect, rot.Z, color1, color2);
-            newVehicle.Rotation.Add(rot);
-
             NAPI.Vehicle.SpawnVehicle(newVehicle, vect, rot.Z);
+
             Vehicle2 vehicle = new Vehicle2(newVehicle, type);
+            serverVehicles.Insert(newVehicle.Id, vehicle);
 
-            serverVehicles.Insert(vehicle.getID(), vehicle);
+            Console.WriteLine($"addV ~ Mod: {hashKey} X: {vect.X} Y: {vect.Y} Z: {vect.Z} Rot: {rot.X} + {rot.Y} + {rot.Z}");
 
-            return getVehicleID(vehicle);
+            return newVehicle.Id;
         }
         public static void removeVehicle(int vehicleid) 
         {
@@ -356,5 +454,53 @@ namespace e_freeroam.Utilities.ServerUtils
         }
 
         public static string getDefaultServerDir() {return serverDir;}
+
+        public static bool commandCheck(Player player, out string output, ushort adminLevel=0, string[] parameters=null, byte size=((byte) 0))
+        {
+            PlayerData data = PlayerDataInfo.getPlayerData(player);
+            bool failed = false;
+            output = null;
+
+            if(data.getPlayerAdminLevel() < adminLevel)
+            {
+                output = ChatUtils.colorString("ERROR: Command not found.", ChatUtils.getColorAsHex(ServerData.COLOR_WHITE));
+                failed = true;
+            }
+            if(!failed && !data.isPlayerRegistered())
+            {
+                output = ChatUtils.colorString("You must register to play! Type /register to continue.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+                failed = true;
+            }
+            if(!failed && !data.isPlayerLoggedIn())
+            {
+                output = ChatUtils.colorString("You must login to play! Type /login to continue.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+                failed = true;
+            }
+			if((!failed && parameters != null) && !parameterCheck(parameters, size))
+			{
+				output = $"Usage: /{parameters[0]}";
+				for(byte i = 1; i <= (size - 1) / 2; i++) output = $"{output} [{parameters[i]}]";
+				output = ChatUtils.colorString(output, ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+				failed = true;
+			}
+
+            return failed;
+        }
+
+		private static bool parameterCheck(string[] checkParams, byte size)
+		{
+			for(byte i = 0; i < size; i++) if(checkParams[i] == "NullCMDStr") return false;
+			return true;
+		}
+
+		public static short getTargetPlayerID(string target)
+		{
+			short playerid = -1;
+
+			foreach(Player player in NAPI.Pools.GetAllPlayers()) if(player.Name.Equals(target)) playerid = ((short) player.Value);
+			if(playerid == -1 && NumberUtils.isNumeric(target, target.Length)) playerid = NumberUtils.parseShort(target, target.Length);
+
+			return playerid;
+		}
     }
 }

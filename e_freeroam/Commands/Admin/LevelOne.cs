@@ -10,49 +10,57 @@ namespace e_freeroam.Commands.Admin
         [Command("acmds", "~r~Usage: /acmds", GreedyArg = false)]
         public void ACMDS(Player user)
         {
-            uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
-            if(adminLevel == 0)
+            string failMsg = null;
+
+            if(ServerData.commandCheck(user, out failMsg, 1, null, 0))
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
             }
+
+            uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
+
             ChatUtils.sendClientMessage(user, (adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, "Admin Commands");
-            ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 1 -!{0xFFFFFF} /ac, /kick, /asay");
-            if(adminLevel >= 2)
+            ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, ChatUtils.colorString("Level 1 -", "FFFF00", "FFFFFF") + " /ac, /kick, /asay");
+			if(adminLevel >= 2)
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 2 -!{0xFFFFFF}");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, ChatUtils.colorString("Level 2 -", "FFFF00", "FFFFFF") + "");
             }
-            if (adminLevel >= 3)
+            if(adminLevel >= 3)
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 3 -!{0xFFFFFF} /giveweapon");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, ChatUtils.colorString("Level 3 -", "FFFF00", "FFFFFF") + " /giveweapon");
             }
-            if (adminLevel >= 4)
+            if(adminLevel >= 4)
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 4 -!{0xFFFFFF} /vehicle");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, ChatUtils.colorString("Level 4 -", "FFFF00", "FFFFFF") + " /vehicle, vcolor, /addserverv");
             }
-            if (adminLevel >= 5)
+            if(adminLevel >= 5)
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 5 -!{0xFFFFFF}");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, ChatUtils.colorString("Level 5 -", "FFFF00", "FFFFFF") + "");
             }
-            if (adminLevel >= 6)
+            if(adminLevel >= 6)
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 6 -!{0xFFFFFF}");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, ChatUtils.colorString("Level 6 -", "FFFF00", "FFFFFF") + "");
             }
-            if (adminLevel >= 7)
+            if(adminLevel >= 7)
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"!{0xFFFF00}Level 7 -!{0xFFFFFF} /addserverv");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, ChatUtils.colorString("Level 7 -", "FFFF00", "FFFFFF") + "");
             }
         }
 
-        [Command("kick", "~r~Usage: /kick [Player ID]", GreedyArg=true)]
-        public void kick(Player user, string target, string reason=null)
+        [Command("kick", GreedyArg=true)]
+        public void kick(Player user, string target="NullCMDStr", string reason=null)
         {
-            uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
-            if (adminLevel == 0)
+            string failMsg = null;
+			string[] parameters = {"kick", "Player ID", target};
+
+            if(ServerData.commandCheck(user, out failMsg, 1, parameters, ((byte) parameters.Length)))
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
             }
+
+            uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
 
             int targetid = (NumberUtils.isNumeric(target, target.Length)) ? NumberUtils.parseInt(target, target.Length) : -1;
             Player targetPlayer = null;
@@ -63,6 +71,12 @@ namespace e_freeroam.Commands.Admin
             if(targetPlayer == null)
             {
                 ChatUtils.sendClientMessage(user, ServerData.COLOR_RED, "Error: Invalid playerid.");
+                return;
+            }
+
+            if(PlayerDataInfo.getPlayerData(targetPlayer).getPlayerAdminLevel() >= adminLevel)
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_RED, "Error: You cannot kick higher level admins.");
                 return;
             }
 
@@ -79,30 +93,38 @@ namespace e_freeroam.Commands.Admin
             return;
         }
 
-        [Command("ac", "~r~Usage: /ac [Text]", GreedyArg=true)]
-        public void ac(Player user, string text)
+        [Command("ac", GreedyArg=true)]
+        public void ac(Player user, string text="NullCMDStr")
         {
-            uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
-            if (adminLevel == 0)
+            string failMsg = null;
+			string[] parameters = {"ac", "Text", text};
+
+            if(ServerData.commandCheck(user, out failMsg, 1, parameters, ((byte) parameters.Length)))
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
             }
+
+            uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
 
             string formatText = $"[Admin Chat] [{user.Name}] {text}";
             ChatUtils.sendMessageToAdmins((adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, formatText, false);
             return;
         }
 
-        [Command("asay", "~r~/asay [Text]", GreedyArg=true)]
-        public void aSay(Player user, string text)
+        [Command("asay", GreedyArg=true)]
+        public void aSay(Player user, string text="NullCMDStr")
         {
-            uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
-            if (adminLevel == 0)
+            string failMsg = null;
+			string[] parameters = {"asay", "Text", text};
+
+            if(ServerData.commandCheck(user, out failMsg, 1, parameters, ((byte) parameters.Length)))
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
             }
+
+            uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
 
             PlayerData data;
             uint targetALevel = 0;

@@ -5,14 +5,22 @@ using e_freeroam.Utilities.ServerUtils;
 using e_freeroam.Objects;
 using e_freeroam.Utilities;
 using e_freeroam.Utilities.PlayerUtils;
+using System.Globalization;
+using System.Threading;
 
 namespace e_freeroam
 {
     public class Main : Script
     {
+        public Main()
+        {
+            Thread.CurrentThread.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+        }
+
         [ServerEvent(Event.ResourceStart)]
         public void OnGamemodeInit()
         {
+            ServerData.loadServerData();
             ServerData.loadVehicles();
         }
 
@@ -25,44 +33,30 @@ namespace e_freeroam
         [ServerEvent(Event.PlayerConnected)]
         public void OnPlayerConnect(Player player)
         {
-            bool newAcc = false;
-            PlayerData data = new PlayerData(player, out newAcc);
+            PlayerData data = new PlayerData(player);
+            PlayerDataInfo.addPlayerData(data);
+
             uint adminLevel = data.getPlayerAdminLevel();
 
-            if(!newAcc)
-            {
-                if (adminLevel > 0)
-                {
-                    ChatUtils.sendClientMessage(player, (adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, $"Admin Level - {adminLevel}");
-                    ChatUtils.sendMessageToAdmins((adminLevel < 5) ? ServerData.COLOR_ADMIN : ServerData.COLOR_UPPER_ADMIN, $"* {player.Name} (ID{player.Value}) has logged in as admin level {adminLevel}.");
-                }
-
-                float angle = 0F;
-                Vector3 pos = data.getPlayerPos(out angle);
-
-                player.Position = pos;
-                player.Heading = angle;
-            }
-            else
-            {
-                ChatUtils.sendClientMessage(player, ServerData.COLOR_YELLOW, $"Account {player.Name} created, you have been logged in automatically!");
-                ChatUtils.sendClientMessageToAll(ServerData.COLOR_GREEN, $"~ {player.Name} has registered a new account. Welcome to our server!");
-            }
+            if(data.isPlayerRegistered()) ChatUtils.sendClientMessage(player, ServerData.COLOR_WHITE, $"Welcome back {player.Name}. Login to your account to play!");
+            else ChatUtils.sendClientMessage(player, ServerData.COLOR_WHITE, $"Account isn't registered. /Register to play.");
         }
 
         [ServerEvent(Event.PlayerDisconnected)]
-        public void OnPlayerDisconnect(Player player)
+        public void OnPlayerDisconnect(Player player, DisconnectionType type, string reason)
         {
             PlayerData data = PlayerDataInfo.getPlayerData(player);
 
             Vector3 pos = player.Position;
             float angle = player.Heading;
 
-            data.updatePlayerHealth(player.Health);
-            data.updatePlayerArmor(player.Armor);
+            data.updatePlayerHealth((sbyte) player.Health);
+            data.updatePlayerArmor((sbyte) player.Armor);
             data.updatePlayerPos(pos, angle);
 
             data.getPlayerFileHandler().saveFile();
+
+            PlayerDataInfo.removePlayerData(data);
         }
 
         [ServerEvent(Event.PlayerSpawn)]
@@ -156,19 +150,6 @@ namespace e_freeroam
                     }
 
                     Utilities.ChatUtils.sendClientMessage(player, color, output);
-                }
-
-                return;
-            }
-
-            if (key == ServerData.getKeyValue(KeyRef.TWO_KEY))
-            {
-                if (player.IsInVehicle && player.VehicleSeat == 0)
-                {
-                    Vehicle playerVeh = player.Vehicle;
-                    bool engineStatus = NAPI.Vehicle.GetVehicleEngineStatus(playerVeh);
-
-                    Utilities.ChatUtils.sendClientMessage(player, ServerData.COLOR_RED, engineStatus ? "On" : "Off");
                 }
 
                 return;

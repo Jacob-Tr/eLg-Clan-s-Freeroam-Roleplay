@@ -22,7 +22,7 @@ namespace e_freeroam.Utilities
             this.fileType = type;
 
             this.dir = directory;
-            this.file = directory + '\\' + fileName + ".ini";
+            this.file = directory + '/' + fileName + ".ini";
 
             fileContent = new Dictionary<string, string>(ServerData.maxKeys);
             keys = new List<string>(ServerData.maxKeys);
@@ -46,7 +46,14 @@ namespace e_freeroam.Utilities
             return result;
         }
 
-        private void editValue(string key, string value) {if(this.containsKey(key)) this.fileContent.Add(key, value);}
+        private void editValue(string key, string value) 
+        {
+            if(this.containsKey(key))
+            {
+                this.fileContent.Remove(key);
+                this.fileContent.Add(key, value);
+            }
+        }
         public void addValue(string key, string value)
         {
             if(!this.containsKey(key) && (this.fileLen < maxFileLen))
@@ -102,6 +109,7 @@ namespace e_freeroam.Utilities
         public bool loadFile()
         {
             if(!File.Exists(this.file)) return false;
+            Console.WriteLine($"Loading {this.file}");
 
             string line = null;
             StreamReader reader = null;
@@ -144,8 +152,7 @@ namespace e_freeroam.Utilities
                 temp.Close();
             }
 
-            StreamWriter writer = null;
-            writer = new StreamWriter(this.file);
+            StreamWriter writer = new StreamWriter(this.file);
 
             for (int i = 0; i < ServerData.maxKeys; i++)
             {

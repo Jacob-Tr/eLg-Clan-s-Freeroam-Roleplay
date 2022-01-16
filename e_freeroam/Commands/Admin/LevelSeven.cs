@@ -11,9 +11,11 @@ namespace e_freeroam.Commands.Admin
         [Command("addserverv", GreedyArg=false)]
         public void addServerVehicle(Player user)
         {
-            if(PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel() < 7)
+            string failMsg = null;
+
+            if(ServerData.commandCheck(user, out failMsg, 4))
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
             }
 

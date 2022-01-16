@@ -1,15 +1,18 @@
-﻿using GTANetworkAPI;
+﻿using e_freeroam.Objects;
+using e_freeroam.Utilities;
+using e_freeroam.Utilities.ServerUtils;
+using GTANetworkAPI;
+using System;
+using System.Collections.Generic;
 
 namespace e_freeroam.Commands
 {
     class Test : Script
     {
-        [Command("test", "Usage: /test", GreedyArg=true)]
-        public void test(Player user)
+        [Command("test", "~w~ERROR: Command not found.", GreedyArg=true)]
+        public void test(Player user, string str="lol")
         {
-            string str = $"This is a test string! {user.Name} And a name!";
-            str = Utilities.ChatUtils.colorString(str, Utilities.ChatUtils.getColorAsHex(Utilities.ServerUtils.ServerData.COLOR_BLUE));
-            user.SendChatMessage(str);
+			ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"{str}");
         }
     }
 }

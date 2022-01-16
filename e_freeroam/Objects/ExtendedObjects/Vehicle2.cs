@@ -1,5 +1,6 @@
 ﻿using GTANetworkAPI;
 using e_freeroam.Utilities.ServerUtils;
+using System;
 
 namespace e_freeroam.Objects
 {
@@ -20,6 +21,8 @@ namespace e_freeroam.Objects
 
             this.spawn = this.vehicle.Position;
             this.spawnRot = this.vehicle.Rotation.Z;
+
+            Console.WriteLine($"Vehicle {this.vehicle.Id} loaded.");
         }
 
         public void startEngine() 
@@ -33,6 +36,14 @@ namespace e_freeroam.Objects
             this.engineStatus = false;
         }
         public bool getEngineStatus() {return this.engineStatus;}
+
+        public bool isAnyoneInVehicle()
+        {
+            Vehicle veh = this.getVehicle();
+
+            foreach(Player player in NAPI.Pools.GetAllPlayers()) if (player.Vehicle == veh) return true;
+            return false;
+        }
 
         public VehicleType getVehicleType() {return this.type;}
 

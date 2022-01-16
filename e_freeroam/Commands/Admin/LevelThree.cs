@@ -7,21 +7,34 @@ namespace e_freeroam.Commands.Admin
 {
     class LevelThree : Script
     {
-        [Command("giveweapon", "~r~Usage: /giveweapon [Player ID] [Weapon Name] [Ammo]", GreedyArg = true)]
-        public void GiveWeapon(Player user, string playeridStr, string weaponName, string ammoStr)
+        [Command("giveweapon", GreedyArg = true)]
+        public void GiveWeapon(Player user, string playeridStr="NullCMDStr", string weaponName="NullCMDStr", string ammoStr="NullCMDStr")
         {
-            if(PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel() < 3)
+            string failMsg = null;
+			string[] parameters = {"giveweapon", "Player ID", "Weapon Name", "Ammo", playeridStr, weaponName, ammoStr};
+
+            if(ServerData.commandCheck(user, out failMsg, 3, parameters, ((byte) parameters.Length)))
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
             }
 
             WeaponHash weapon = NAPI.Util.WeaponNameToModel(weaponName);
-            Player player = null;
 
-            int playerid = Utilities.NumberUtils.isNumeric(playeridStr, playeridStr.Length) ? Utilities.NumberUtils.parseInt(playeridStr, playeridStr.Length) : -1, ammo = Utilities.NumberUtils.parseInt(ammoStr, ammoStr.Length);
+            short playerid = ServerData.getTargetPlayerID(playeridStr);
 
-            foreach(Player pool in NAPI.Pools.GetAllPlayers()) if(pool.Value == playerid) player = pool;
+			if(playerid == -1) playerid = ((short) user.Value);
+
+			if(!NumberUtils.isNumeric(ammoStr, ammoStr.Length))
+			{
+				ChatUtils.sendClientMessage(user, ServerData.COLOR_RED, "Error: Invalid ammo value.");
+				return;
+			}
+
+			short ammo = Utilities.NumberUtils.parseShort(ammoStr, ammoStr.Length);
+
+			Player player = null;
+			player = PlayerDataInfo.getPlayerDataFromID(playerid).getPlayer();
 
             if(player == null)
             {

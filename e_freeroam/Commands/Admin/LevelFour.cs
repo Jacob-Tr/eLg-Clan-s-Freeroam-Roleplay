@@ -7,12 +7,15 @@ namespace e_freeroam_Commands_Admin
 {
     class LevelFour: Script
     {
-        [Command("vehicle", "~r~Usage: /vehicle [Vehicle ID] [Color 1] [Color 2]", GreedyArg = true, Alias = "v")]
-        public void Vehicle(Player user, string model, string color1Str = "-1", string color2Str = "-1")
+        [Command("vehicle", GreedyArg=true, Alias = "v")]
+        public void Vehicle(Player user, string model="NullCMDStr", string color1Str = "-1", string color2Str = "-1")
         {
-            if(PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel() < 4)
+            string failMsg = null;
+			string[] parameters = {"vehicle", "Model Name", "Color 1", "Color 2", model, color1Str, color2Str};
+
+            if(ServerData.commandCheck(user, out failMsg, 4, parameters, ((byte) parameters.Length)))
             {
-                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, "Error: Command not found.");
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
             }
 
@@ -47,6 +50,40 @@ namespace e_freeroam_Commands_Admin
 
             user.SendChatMessage(ChatUtils.colorString($"* You have created a {model}.", ChatUtils.getColorAsHex(ServerData.COLOR_WHITE)));
             ChatUtils.sendMessageToAdmins(ServerData.COLOR_ADMIN_NOTES_LOG, $"{user.Name} has created a {model}.");
+        }
+
+        [Command("vcolor", "~r~Usage: /vcolor [Color1] [Color2]", GreedyArg=true)]
+        public void VColor(Player user, string color1Str, string color2Str="-1")
+        {
+            string failMsg = null;
+
+            if(ServerData.commandCheck(user, out failMsg, 4))
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
+                return;
+            }
+
+            int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, color1Str.Length), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, color2Str.Length); ;
+
+            if((color1 < 0 || color1 > 159) || color2 != -1 && (color2 < 0 || color2 > 159))
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_RED, "Error: Invalid color ID. (0 - 159)");
+                return;
+            }
+
+            if(!NAPI.Player.IsPlayerInAnyVehicle(user))
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_RED, "Error: You must be inside a vehicle.");
+                return;
+            }
+            Vehicle vehicle = NAPI.Player.GetPlayerVehicle(user);
+
+            if(color2 == -1) color2 = color1;
+            vehicle.PrimaryColor = color1;
+            vehicle.SecondaryColor = color2;
+
+            ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, $"You have changed this vehicle's colors to {vehicle.PrimaryColor} and {vehicle.SecondaryColor}.");
+            return;
         }
     }
 }

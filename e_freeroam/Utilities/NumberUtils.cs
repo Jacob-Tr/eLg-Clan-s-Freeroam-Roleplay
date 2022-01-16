@@ -115,5 +115,66 @@ namespace e_freeroam.Utilities
 
 			return (negative) ? (0 - sum) : sum;
 		}
+
+		public static short parseShort(string str, int length)
+		{
+
+			if(length < 1) return 0;
+			if(str.LastIndexOf('.') != -1) return 0;
+
+			bool negative = false;
+			if(str[0] == '-')
+			{
+				negative = true;
+
+				str = str.Substring(1);
+				--length;
+			}
+
+			if(!isNumeric(str, length)) return 0;
+
+			int endPos = length - 2;
+			short charInt = -1, sum = 0;
+
+			for(int i = 0; i < length; i++)
+			{
+				charInt = ((short) (str[i] - 48));
+				if(endPos > -1) charInt *= ((short) exp(10, endPos--));
+
+				sum += charInt;
+			}
+
+			return (negative) ? ((short) (0 - sum)) : sum;
+		}
+
+		public static sbyte parseByte(string str, int length)
+		{
+			if(length < 1) return 0;
+			if(str.LastIndexOf('.') != -1) return 0;
+
+			bool negative = false;
+			if(str[0] == '-')
+			{
+				negative = true;
+
+				str = str.Substring(1);
+				--length;
+			}
+
+			if(!isNumeric(str, length)) return 0;
+
+			int endPos = length - 2;
+			sbyte charInt = ((sbyte) -1), sum = ((sbyte) 0);
+
+			for(int i = 0; i < length; i++)
+			{
+				charInt = ((sbyte) (str[i] - 48));
+				if(endPos > -1) charInt *= ((sbyte) exp(10, endPos--));
+
+				sum += charInt;
+			}
+
+			return (negative) ? ((sbyte) (0 - sum)) : sum;
+		}
 	}
 }

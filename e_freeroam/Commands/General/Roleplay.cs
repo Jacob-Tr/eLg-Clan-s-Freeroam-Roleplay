@@ -1,4 +1,6 @@
-﻿using GTANetworkAPI;
+﻿using e_freeroam.Utilities;
+using e_freeroam.Utilities.ServerUtils;
+using GTANetworkAPI;
 
 namespace e_freeroam.Commands.General
 {
@@ -7,15 +9,31 @@ namespace e_freeroam.Commands.General
         [Command("me", "~r~Usage: /me [Text]", GreedyArg=true)]
         public void Me(Player user, string text)
         {
+            string failMsg = null;
+
+            if(ServerData.commandCheck(user, out failMsg))
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
+                return;
+            }
+
             string meStr = $"{user.Name} {text}";
-            Utilities.ChatUtils.sendClientMessageToAll(Utilities.ServerUtils.ServerData.COLOR_LIGHT_PINK, meStr);
+            ChatUtils.sendClientMessageToAll(Utilities.ServerUtils.ServerData.COLOR_LIGHT_PINK, meStr);
         }
 
         [Command("do", "~r~Usage: /do [Text]", GreedyArg=true)]
         public void Do(Player user, string text)
         {
+            string failMsg = null;
+
+            if(ServerData.commandCheck(user, out failMsg))
+            {
+                ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
+                return;
+            }
+
             string meStr = $"* {text} ({user.Name})";
-            Utilities.ChatUtils.sendClientMessageToAll(Utilities.ServerUtils.ServerData.COLOR_LIGHT_PINK, meStr);
+            ChatUtils.sendClientMessageToAll(Utilities.ServerUtils.ServerData.COLOR_LIGHT_PINK, meStr);
         }
     }
 }
