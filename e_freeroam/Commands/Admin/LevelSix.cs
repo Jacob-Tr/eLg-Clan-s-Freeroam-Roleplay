@@ -26,7 +26,7 @@ namespace e_freeroam.Commands.Admin
 				return;
 			}
 
-			sbyte level = (NumberUtils.isNumeric(levelStr, levelStr.Length)) ? NumberUtils.parseByte(levelStr, levelStr.Length) : ((sbyte) 0);
+			sbyte level = (NumberUtils.isNumeric(levelStr, (byte) levelStr.Length)) ? NumberUtils.parseByte(levelStr, (byte) levelStr.Length) : ((sbyte) 0);
 			if(level < 1 || level > 7)
 			{
 				ChatUtils.sendClientMessage(user, ServerData.COLOR_RED, "Error: Invalid level. (1-7)");

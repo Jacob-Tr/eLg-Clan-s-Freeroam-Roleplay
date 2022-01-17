@@ -25,13 +25,13 @@ namespace e_freeroam.Commands.Admin
 
 			if(playerid == -1) playerid = ((short) user.Value);
 
-			if(!NumberUtils.isNumeric(ammoStr, ammoStr.Length))
+			if(!NumberUtils.isNumeric(ammoStr, (byte) ammoStr.Length))
 			{
 				ChatUtils.sendClientMessage(user, ServerData.COLOR_RED, "Error: Invalid ammo value.");
 				return;
 			}
 
-			short ammo = Utilities.NumberUtils.parseShort(ammoStr, ammoStr.Length);
+			short ammo = Utilities.NumberUtils.parseShort(ammoStr, (byte) ammoStr.Length);
 
 			Player player = null;
 			player = PlayerDataInfo.getPlayerDataFromID(playerid).getPlayer();

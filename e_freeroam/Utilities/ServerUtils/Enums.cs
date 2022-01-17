@@ -64,6 +64,13 @@
         VEHICLES
     }
 
+	public enum OrgType
+	{
+		GANG,
+		LAW,
+		PRIVATE
+	}
+
     public enum CPType
     {
         ORG,

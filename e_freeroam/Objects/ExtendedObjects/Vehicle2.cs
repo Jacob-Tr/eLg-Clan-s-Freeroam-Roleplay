@@ -9,8 +9,8 @@ namespace e_freeroam.Objects
         private VehicleType type;
         private Vehicle vehicle = null;
 
-        private Vector3 pos = null, spawn = null;
-        private float rot = 0.0F, spawnRot = 0.0F;
+        private Vector3 spawn = null;
+        private float spawnRot = 0.0F;
 
         private bool engineStatus = false;
 

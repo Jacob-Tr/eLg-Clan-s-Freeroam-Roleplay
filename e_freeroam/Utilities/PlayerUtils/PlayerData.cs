@@ -17,8 +17,6 @@ namespace e_freeroam.Utilities.PlayerUtils
 
         private float x = 0F, y = 0F, z = 0F, ang = 0F;
 
-        Vector3 pos = null;
-
         public PlayerData(Player user)
         {
             this.playerHandler = new FileHandler(FileTypes.PLAYER, $"{ServerData.getDefaultServerDir()}PlayerData/{user.Name[0]}", $"{user.Name}");
@@ -81,25 +79,25 @@ namespace e_freeroam.Utilities.PlayerUtils
             this.logAtt = 0;
 
             string adStr = playerHandler.getValue(PlayerInfo.ADLVL.ToString());
-            this.adminLevel = ((byte) NumberUtils.parseByte(adStr, adStr.Length));
+            this.adminLevel = ((byte) NumberUtils.parseByte(adStr, (byte) adStr.Length));
 
             string hStr = playerHandler.getValue(PlayerInfo.HEALTH.ToString());
-            this.health = NumberUtils.parseByte(hStr, hStr.Length);
+            this.health = NumberUtils.parseByte(hStr, (byte) hStr.Length);
 
             string aStr = playerHandler.getValue(PlayerInfo.ARMOR.ToString());
-            this.armor = NumberUtils.parseByte(aStr, aStr.Length);
+            this.armor = NumberUtils.parseByte(aStr, (byte) aStr.Length);
 
             string xStr = playerHandler.getValue(PlayerInfo.X.ToString());
-            this.x = NumberUtils.parseFloat(xStr, xStr.Length);
+            this.x = NumberUtils.parseFloat(xStr, (byte) xStr.Length);
 
             string yStr = playerHandler.getValue(PlayerInfo.Y.ToString());
-            this.y = NumberUtils.parseFloat(yStr, yStr.Length);
+            this.y = NumberUtils.parseFloat(yStr, (byte) yStr.Length);
 
             string zStr = playerHandler.getValue(PlayerInfo.Z.ToString());
-            this.z = NumberUtils.parseFloat(zStr, zStr.Length);
+            this.z = NumberUtils.parseFloat(zStr, (byte) zStr.Length);
 
             string anStr = playerHandler.getValue(PlayerInfo.ANGLE.ToString());
-            this.ang = NumberUtils.parseFloat(anStr, anStr.Length);
+            this.ang = NumberUtils.parseFloat(anStr, (byte) anStr.Length);
 
             if (adminLevel > 0)
             {

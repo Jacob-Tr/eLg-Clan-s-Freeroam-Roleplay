@@ -62,7 +62,7 @@ namespace e_freeroam.Commands.Admin
 
             uint adminLevel = PlayerDataInfo.getPlayerData(user).getPlayerAdminLevel();
 
-            int targetid = (NumberUtils.isNumeric(target, target.Length)) ? NumberUtils.parseInt(target, target.Length) : -1;
+            int targetid = (NumberUtils.isNumeric(target, (byte) target.Length)) ? NumberUtils.parseInt(target, (byte) target.Length) : -1;
             Player targetPlayer = null;
 
             if(targetid == -1) foreach(Player player in NAPI.Pools.GetAllPlayers()) if(player.Name.Equals(target)) targetPlayer = player;

@@ -19,7 +19,7 @@ namespace e_freeroam_Commands_Admin
                 return;
             }
 
-            int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, color1Str.Length), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, color2Str.Length); ;
+            int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, (byte) color1Str.Length), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, (byte) color2Str.Length); ;
 
             uint hashKey = (uint)NAPI.Util.GetHashKey(model);
 
@@ -63,7 +63,7 @@ namespace e_freeroam_Commands_Admin
                 return;
             }
 
-            int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, color1Str.Length), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, color2Str.Length); ;
+            int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, (byte) color1Str.Length), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, (byte) color2Str.Length); ;
 
             if((color1 < 0 || color1 > 159) || color2 != -1 && (color2 < 0 || color2 > 159))
             {

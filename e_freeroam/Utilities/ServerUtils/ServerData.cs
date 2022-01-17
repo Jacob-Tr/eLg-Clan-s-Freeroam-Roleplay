@@ -275,7 +275,7 @@ namespace e_freeroam.Utilities.ServerUtils
             string value = null;
 
             serverData.TryGetValue(ServerUtils.ServerDataInfo.WRLDTIME.ToString(), out value);
-            if(serverData.ContainsKey(value)) worldTime = NumberUtils.parseInt(value, value.Length);
+            if(serverData.ContainsKey(value)) worldTime = NumberUtils.parseInt(value, (byte) value.Length);
 
             for(sbyte i = 0; i < maxOrgs; i++)
             {
@@ -294,9 +294,9 @@ namespace e_freeroam.Utilities.ServerUtils
             return;
         }
 
-        public static bool addOrg(string name, Player creatingPlayer)
+        public static sbyte addOrg(string name, Color color, Player creatingPlayer)
         {
-            if((orgCount + 1) >= maxOrgs) return false;
+            if((orgCount + 1) >= maxOrgs) return -1;
 
             sbyte orgID = ((sbyte) -1);
             for(sbyte i = 0; i < maxOrgs; i++)
@@ -308,6 +308,8 @@ namespace e_freeroam.Utilities.ServerUtils
                 }
             }
             Organization newOrg = new Organization(orgID, creatingPlayer, name);
+			newOrg.setColor(color);
+
             orgList.Insert(orgID, newOrg);
 
             int count = 0;
@@ -315,24 +317,23 @@ namespace e_freeroam.Utilities.ServerUtils
 
             orgCount = count;
 
-            return true;
+            return orgID;
         }
-        public static Organization getOrg(int id) {return orgList[id];}
+        public static Organization getOrg(ushort id) {return orgList[id];}
 
-        public static int addCP(Vector3 location, CPType cpType=CPType.NULL)
+        public static Checkpoint2 addCP(Vector3 location, CPType cpType=CPType.NULL)
         {
-            if((cpCount + 1) > maxCPs) return -1;
+            if((cpCount + 1) > maxCPs) return null;
             cpCount++;
 
             Checkpoint2 newCP = new Checkpoint2(location, cpType);
-
-            int id = newCP.getID();
+            ushort id = newCP.getID();
 
             cpList.Insert(id, newCP);
-            return id;
+            return newCP;
         }
-        public static Checkpoint getCP(int id) {return cpList[id].getCheckpoint();}
-        public static void removeCP(int id) 
+        public static Checkpoint2 getCP(ushort id) {return cpList[id];}
+        public static void removeCP(ushort id) 
         {
             Checkpoint2 cp = cpList[id];
             cpList[id] = null;
@@ -391,13 +392,13 @@ namespace e_freeroam.Utilities.ServerUtils
 
                     rotZ = value.Substring(index);
 
-                    MODEL = ((uint)NumberUtils.parseInt(model, model.Length));
-                    X = NumberUtils.parseFloat(x, x.Length);
-                    Y = NumberUtils.parseFloat(y, y.Length);
-                    Z = NumberUtils.parseFloat(z, z.Length);
-                    ROT_X = NumberUtils.parseFloat(rotX, rotX.Length);
-                    ROT_Y = NumberUtils.parseFloat(rotY, rotY.Length);
-                    ROT_Z = NumberUtils.parseFloat(rotZ, rotZ.Length);
+                    MODEL = ((uint)NumberUtils.parseInt(model, (byte) model.Length));
+                    X = NumberUtils.parseFloat(x, (byte) x.Length);
+                    Y = NumberUtils.parseFloat(y, (byte) y.Length);
+                    Z = NumberUtils.parseFloat(z, (byte) z.Length);
+                    ROT_X = NumberUtils.parseFloat(rotX, (byte) rotX.Length);
+                    ROT_Y = NumberUtils.parseFloat(rotY, (byte) rotY.Length);
+                    ROT_Z = NumberUtils.parseFloat(rotZ, (byte) rotZ.Length);
 
                     Vector3 vect = new Vector3(X, Y, Z);
                     Vector3 angle = new Vector3(ROT_X, ROT_Y, ROT_Z);
@@ -498,7 +499,7 @@ namespace e_freeroam.Utilities.ServerUtils
 			short playerid = -1;
 
 			foreach(Player player in NAPI.Pools.GetAllPlayers()) if(player.Name.Equals(target)) playerid = ((short) player.Value);
-			if(playerid == -1 && NumberUtils.isNumeric(target, target.Length)) playerid = NumberUtils.parseShort(target, target.Length);
+			if(playerid == -1 && NumberUtils.isNumeric(target, (byte) target.Length)) playerid = NumberUtils.parseShort(target, (byte) target.Length);
 
 			return playerid;
 		}

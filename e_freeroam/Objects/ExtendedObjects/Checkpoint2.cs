@@ -8,7 +8,7 @@ namespace e_freeroam.Objects
     {
         private CPType type;
         private GTANetworkAPI.Checkpoint point = null;
-        private int id;
+        private ushort id;
 
         public Checkpoint2(Vector3 location, CPType cpType=CPType.NULL)
         {
@@ -18,10 +18,14 @@ namespace e_freeroam.Objects
             this.id = this.point.Id;
         }
 
-        public int getID() {return this.id;}
+        public ushort getID() {return this.id;}
 
         public GTANetworkAPI.Checkpoint getCheckpoint() {return this.point;}
 
-        public void destroyCheckpoint() {ServerData.removeCP(this.id);}
+        public void destroyCheckpoint() 
+		{
+			ServerData.removeCP(this.id);
+			this.point = null;
+		}
     }
 }

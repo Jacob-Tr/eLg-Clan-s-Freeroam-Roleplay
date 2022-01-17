@@ -90,7 +90,7 @@ namespace e_freeroam.Utilities
         void processLine(string line)
         {
             string key, value;
-            int index = 0;
+
             for(int i = 0; i < line.Length; i++)
             {
                 if(line[i] == '=')
@@ -168,13 +168,13 @@ namespace e_freeroam.Utilities
                 if (this.fileType == FileTypes.PLAYER)
                 {
                     try {Enum.Parse(typeof(PlayerInfo), key);}
-                    catch(ArgumentException e) {continue;}
+                    catch(ArgumentException) { continue;}
                 }
 
                 if(this.fileType == FileTypes.SERVER)
                 {
                     try {Enum.Parse(typeof(Utilities.ServerUtils.ServerDataInfo), key);}
-                    catch (ArgumentException e) {continue;}
+                    catch(ArgumentException) {continue;}
                 }
 
                 string result = null;
@@ -186,5 +186,19 @@ namespace e_freeroam.Utilities
 
             return true;
         }
+
+		public bool deleteFile()
+		{
+			if(!File.Exists(this.file)) return false;
+			try {File.Delete(this.file);}
+			catch (Exception) { return false;}
+
+			this.fileContent = null;
+			this.keys = null;
+
+			this.fileLen = 0;
+			this.empty = true;
+			return true;
+		}
     }
 }
