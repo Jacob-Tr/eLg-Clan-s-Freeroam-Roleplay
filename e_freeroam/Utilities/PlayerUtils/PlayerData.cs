@@ -11,11 +11,13 @@ namespace e_freeroam.Utilities.PlayerUtils
 
         private bool logged = false, registered = false;
 
-        private byte adminLevel = 0, logAtt = 0;
-        private sbyte health = 0;
-        private sbyte armor = 0;
+        private byte logAtt = 0;
+        private byte adminLevel = 0, supportLevel = 0, vipLevel = 0, health = 0, armor = 0;
+        private sbyte organization = -1;
 
         private float x = 0F, y = 0F, z = 0F, ang = 0F;
+
+		int money = 0;
 
         public PlayerData(Player user)
         {
@@ -28,7 +30,8 @@ namespace e_freeroam.Utilities.PlayerUtils
         public void createAccount(string password)
         {
             this.playerHandler.addValue(PlayerInfo.ADLVL.ToString(), "4");
-            this.adminLevel = 4;
+			this.playerHandler.addValue(PlayerInfo.STLVL.ToString(), "0");
+			this.playerHandler.addValue(PlayerInfo.VIPLVL.ToString(), "0");
 
             this.playerHandler.addValue(PlayerInfo.HEALTH.ToString(), "100");
             this.health = 100;
@@ -50,6 +53,10 @@ namespace e_freeroam.Utilities.PlayerUtils
             this.playerHandler.addValue(PlayerInfo.ANGLE.ToString(), $"{ang}");
 
             this.playerHandler.addValue(PlayerInfo.PASSWORD.ToString(), password);
+
+			this.playerHandler.addValue(PlayerInfo.ORG.ToString(), $"{-1}");
+
+			this.playerHandler.addValue(PlayerInfo.MONEY.ToString(), $"{50000}");
 
             ChatUtils.sendClientMessage(player, ServerData.COLOR_YELLOW, $"Account {player.Name} created, you have been logged in automatically!");
             ChatUtils.sendClientMessageToAll(ServerData.COLOR_GREEN, $"~ {player.Name} has registered a new account. Welcome to our server!");
@@ -78,26 +85,40 @@ namespace e_freeroam.Utilities.PlayerUtils
             }
             this.logAtt = 0;
 
-            string adStr = playerHandler.getValue(PlayerInfo.ADLVL.ToString());
-            this.adminLevel = ((byte) NumberUtils.parseByte(adStr, (byte) adStr.Length));
+			string value = null;
 
-            string hStr = playerHandler.getValue(PlayerInfo.HEALTH.ToString());
-            this.health = NumberUtils.parseByte(hStr, (byte) hStr.Length);
+            value = playerHandler.getValue(PlayerInfo.ADLVL.ToString());
+            this.adminLevel = (byte) NumberUtils.parseByte(value, (byte) value.Length);
 
-            string aStr = playerHandler.getValue(PlayerInfo.ARMOR.ToString());
-            this.armor = NumberUtils.parseByte(aStr, (byte) aStr.Length);
+            value = playerHandler.getValue(PlayerInfo.STLVL.ToString());
+            this.supportLevel = (byte) NumberUtils.parseByte(value, (byte) value.Length);
 
-            string xStr = playerHandler.getValue(PlayerInfo.X.ToString());
-            this.x = NumberUtils.parseFloat(xStr, (byte) xStr.Length);
+			value = playerHandler.getValue(PlayerInfo.VIPLVL.ToString());
+            this.vipLevel = (byte) NumberUtils.parseByte(value, (byte) value.Length);
 
-            string yStr = playerHandler.getValue(PlayerInfo.Y.ToString());
-            this.y = NumberUtils.parseFloat(yStr, (byte) yStr.Length);
+            value = playerHandler.getValue(PlayerInfo.HEALTH.ToString());
+            this.health = (byte) NumberUtils.parseByte(value, (byte) value.Length);
 
-            string zStr = playerHandler.getValue(PlayerInfo.Z.ToString());
-            this.z = NumberUtils.parseFloat(zStr, (byte) zStr.Length);
+            value = playerHandler.getValue(PlayerInfo.ARMOR.ToString());
+            this.armor = (byte) NumberUtils.parseByte(value, (byte) value.Length);
 
-            string anStr = playerHandler.getValue(PlayerInfo.ANGLE.ToString());
-            this.ang = NumberUtils.parseFloat(anStr, (byte) anStr.Length);
+            value = playerHandler.getValue(PlayerInfo.X.ToString());
+            this.x = NumberUtils.parseFloat(value, (byte) value.Length);
+
+            value = playerHandler.getValue(PlayerInfo.Y.ToString());
+            this.y = NumberUtils.parseFloat(value, (byte) value.Length);
+
+            value = playerHandler.getValue(PlayerInfo.Z.ToString());
+            this.z = NumberUtils.parseFloat(value, (byte) value.Length);
+
+            value = playerHandler.getValue(PlayerInfo.ANGLE.ToString());
+            this.ang = NumberUtils.parseFloat(value, (byte) value.Length);
+
+			value = playerHandler.getValue(PlayerInfo.ORG.ToString());
+			this.organization = NumberUtils.parseSignedByte(value, (byte) value.Length);
+
+			value = playerHandler.getValue(PlayerInfo.MONEY.ToString());
+            this.money = NumberUtils.parseInt(value, (byte) value.Length);
 
             if (adminLevel > 0)
             {
@@ -111,6 +132,8 @@ namespace e_freeroam.Utilities.PlayerUtils
             player.Position = this.getPlayerPos(out angle);
             player.Rotation = new Vector3(0, 0, angle);
 
+			if(!ServerData.getOrg(this.organization).isPlayerInOrg(player)) this.setPlayerOrg(-1);
+
             this.setPlayerLoggedIn(true);
         }
 
@@ -123,22 +146,22 @@ namespace e_freeroam.Utilities.PlayerUtils
 
         public FileHandler getPlayerFileHandler() {return this.playerHandler;}
 
-        public uint getPlayerAdminLevel() {return this.adminLevel;}
+        public byte getPlayerAdminLevel() {return this.adminLevel;}
         public void updatePlayerAdminLevel(byte value)
         {
             this.adminLevel = value;
             this.playerHandler.addValue(ServerUtils.PlayerInfo.ADLVL.ToString(), "" + value);
         }
 
-        public int getPlayerHealth() {return this.health;}
-        public void updatePlayerHealth(sbyte value)
+        public byte getPlayerHealth() {return this.health;}
+        public void updatePlayerHealth(byte value)
         {
             this.health = value;
             this.playerHandler.addValue(ServerUtils.PlayerInfo.HEALTH.ToString(), "" + value);
         }
 
         public int getPlayerArmor() {return this.armor;}
-        public void updatePlayerArmor(sbyte value)
+        public void updatePlayerArmor(byte value)
         {
             this.armor = value;
             this.playerHandler.addValue(ServerUtils.PlayerInfo.ARMOR.ToString(), "" + value);
@@ -156,10 +179,21 @@ namespace e_freeroam.Utilities.PlayerUtils
             this.z = ((float)pos.Z);
             this.ang = angle;
 
-            this.playerHandler.addValue(ServerUtils.PlayerInfo.X.ToString(), $"{this.x}");
-            this.playerHandler.addValue(ServerUtils.PlayerInfo.Y.ToString(), $"{this.y}");
-            this.playerHandler.addValue(ServerUtils.PlayerInfo.Z.ToString(), $"{this.z}");
-            this.playerHandler.addValue(ServerUtils.PlayerInfo.ANGLE.ToString(), $"{this.ang}");
+            this.playerHandler.addValue(PlayerInfo.X.ToString(), $"{this.x}");
+            this.playerHandler.addValue(PlayerInfo.Y.ToString(), $"{this.y}");
+            this.playerHandler.addValue(PlayerInfo.Z.ToString(), $"{this.z}");
+            this.playerHandler.addValue(PlayerInfo.ANGLE.ToString(), $"{this.ang}");
         }
+
+		public sbyte getPlayerOrg() {return this.organization;}
+		public void setPlayerOrg(sbyte value)
+		{
+			this.organization = value;
+			this.playerHandler.addValue(PlayerInfo.ORG.ToString(), $"{value}");
+
+			this.playerHandler.saveFile();
+		}
+
+
     }
 }

@@ -42,7 +42,7 @@ namespace e_freeroam.Utilities
             else return new Color(Convert.ToInt32(hex, 16));
         }
 
-		public static bool isValidHex(string hex)
+		public static bool isValidHex(string hex, Player user=null)
 		{
 			if(hex.Length != 6 && hex.Length != 8 && hex.Length != 3) return false;
 			if(hex.Length == 8 && ((((byte) hex[0]) != 48) || (((byte) hex[1]) != 120))) return false; // First and second chars of 8 digit hexidecimal must be 0 and x respectively.

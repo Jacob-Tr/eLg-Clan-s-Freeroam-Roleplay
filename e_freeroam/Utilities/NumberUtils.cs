@@ -1,5 +1,6 @@
 ﻿using e_freeroam.Utilities.ServerUtils;
 using GTANetworkAPI;
+using System;
 
 namespace e_freeroam.Utilities
 {
@@ -18,6 +19,36 @@ namespace e_freeroam.Utilities
 
             return true;
         }
+
+		public static string processTime(double delay)
+		{
+			double hoursTotal = 0, minutesTotal = 0;
+			int hours = 0, minutes = 0, seconds = 0;
+
+			minutesTotal = (double) (delay / 60);
+			hoursTotal = (double) (minutesTotal / 60);
+
+			if(hoursTotal != 1)
+			{
+				hours = (int) Math.Floor(hoursTotal);
+				minutesTotal = (hoursTotal - Math.Floor(hoursTotal)) * 60;
+			}
+
+			minutes += (int) Math.Floor(minutesTotal);
+			seconds += (minutesTotal != 0) ? (int) Math.Round((minutesTotal - minutes) * 60) : (int) Math.Round(delay);
+
+			string secStr = (seconds < 10) ? $"0{seconds}" : $"{seconds}", minStr = (minutes < 10) ? $"0{minutes}" : $"{minutes}", hourStr = (hours < 10) ? $"0{hours}" : $"{hours}";
+
+			return $"{hourStr}:{minStr}:{secStr}";
+		}
+
+		public static uint unsignedExp(uint numOne, int numTwo)
+		{
+			uint num = numOne;
+			for(uint i = 0; i < numTwo; i++) num *= numOne;
+
+			return num;
+		}
 
 		public static int exp(int numOne, int numTwo)
 		{
@@ -87,6 +118,37 @@ namespace e_freeroam.Utilities
 			return (negative) ? (0 - sum) : sum;
 		}
 
+		public static uint parseUnsignedInt(string str, byte length)
+		{
+
+			if(length < 1) return 0;
+			if(str.LastIndexOf('.') != -1) return 0;
+
+			bool negative = false;
+			if(str[0] == '-')
+			{
+				negative = true;
+
+				str = str.Substring(1);
+				--length;
+			}
+
+			if(!isNumeric(str, length)) return 0;
+
+			sbyte endPos = (sbyte) (length - 2);
+			uint sum = 0, charInt = 0;
+
+			for(byte i = 0; i < length; i++)
+			{
+				charInt = (uint) (str[i] - 48);
+				if(endPos > -1) charInt *= unsignedExp(10, endPos--);
+
+				sum += charInt;
+			}
+
+			return (negative) ? (0 - sum) : sum;
+		}
+
 		public static int parseInt(string str, byte length)
 		{
 
@@ -149,7 +211,7 @@ namespace e_freeroam.Utilities
 			return (negative) ? ((short) (0 - sum)) : sum;
 		}
 
-		public static sbyte parseByte(string str, byte length)
+		public static sbyte parseSignedByte(string str, byte length)
 		{
 			if(length < 1) return 0;
 			if(str.LastIndexOf('.') != -1) return 0;
@@ -177,6 +239,36 @@ namespace e_freeroam.Utilities
 			}
 
 			return (negative) ? ((sbyte) (0 - sum)) : sum;
+		}
+
+		public static byte parseByte(string str, byte length)
+		{
+			if(length < 1) return 0;
+			if(str.LastIndexOf('.') != -1) return 0;
+
+			bool negative = false;
+			if(str[0] == '-')
+			{
+				negative = true;
+
+				str = str.Substring(1);
+				--length;
+			}
+
+			if(!isNumeric(str, length)) return 0;
+
+			sbyte endPos = (sbyte) (length - 2), charInt = ((sbyte) -1);
+			byte sum = ((byte) 0);
+
+			for(byte i = 0; i < length; i++)
+			{
+				charInt = ((sbyte) (str[i] - 48));
+				if(endPos > -1) charInt *= ((sbyte) exp(10, endPos--));
+
+				sum += (byte) charInt;
+			}
+
+			return (negative) ? ((byte) (0 - sum)) : sum;
 		}
 	}
 }

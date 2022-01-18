@@ -198,6 +198,7 @@ namespace e_freeroam.Utilities
 
 			this.fileLen = 0;
 			this.empty = true;
+
 			return true;
 		}
     }

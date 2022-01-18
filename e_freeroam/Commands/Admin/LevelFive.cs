@@ -7,7 +7,7 @@ namespace e_freeroam
 	class LevelFive : Script
     {
 		[Command("createorg", GreedyArg=true)]
-		public void CreateOrg(Player user, string name="NullCMDStr", string hex="NullCMDStr")
+		public void CreateOrg(Player user, string hex="NullCMDStr", string name="NullCMDStr")
 		{
 			string failMsg = null;
 			string[] parameters = {"createorg", "Color", "Name", hex, name};
@@ -18,7 +18,7 @@ namespace e_freeroam
                 return;
             }
 
-			if(ChatUtils.isValidHex(hex))
+			if(!ChatUtils.isValidHex(hex, user))
 			{
 				ChatUtils.sendClientMessage(user, ServerData.COLOR_RED, "Error: Invalid RGB format.");
 				return;
@@ -40,7 +40,7 @@ namespace e_freeroam
 			}
 
 			ChatUtils.sendClientMessage(user, ServerData.COLOR_SILVER, $"Organization '{name}' created (ID = {id})");
-			ChatUtils.sendMessageToAdmins(ServerData.COLOR_ADMIN_NOTES_LOG, $"Admin Log: {user.Name} has created organization '{name}' (ID{id}).");
+			ChatUtils.sendMessageToAdmins(ServerData.COLOR_ADMIN_NOTES_LOG, $"{user.Name} has created organization '{name}' (ID{id}).");
 		}
     }
 }

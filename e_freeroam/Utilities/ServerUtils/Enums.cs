@@ -5,7 +5,8 @@
         PLAYER,
         SERVER,
         VEHICLE,
-        ORG,
+        ORGMETA,
+		OMEMBERS,
         NULL
     }
 
@@ -20,12 +21,16 @@
     {
         PASSWORD,
         ADLVL,
+		VIPLVL,
+		STLVL,
         HEALTH,
         ARMOR,
         X,
         Y,
         Z,
         ANGLE,
+		ORG,
+		MONEY,
         NULL
     }
 
@@ -61,8 +66,16 @@
         Y,
         Z,
         COLOR,
+		DIMENSION,
         VEHICLES
     }
+
+	public enum OrgMemberInfo
+	{
+		LEADER,
+		COLEADER,
+		MEMBER
+	}
 
 	public enum OrgType
 	{

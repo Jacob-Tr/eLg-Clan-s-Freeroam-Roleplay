@@ -36,7 +36,12 @@ namespace e_freeroam
             PlayerData data = new PlayerData(player);
             PlayerDataInfo.addPlayerData(data);
 
-            uint adminLevel = data.getPlayerAdminLevel();
+            byte adminLevel = data.getPlayerAdminLevel();
+
+			Organization org = ServerData.getOrg(0);
+			bool exists = NAPI.Entity.DoesEntityExistForPlayer(player, org.getCheckpoint2().getCheckpoint().Handle);
+
+			ChatUtils.sendClientMessage(player, ServerData.COLOR_RED, $"{exists}");
 
             if(data.isPlayerRegistered()) ChatUtils.sendClientMessage(player, ServerData.COLOR_WHITE, $"Welcome back {player.Name}. Login to your account to play!");
             else ChatUtils.sendClientMessage(player, ServerData.COLOR_WHITE, $"Account isn't registered. /Register to play.");
@@ -50,8 +55,8 @@ namespace e_freeroam
             Vector3 pos = player.Position;
             float angle = player.Heading;
 
-            data.updatePlayerHealth((sbyte) player.Health);
-            data.updatePlayerArmor((sbyte) player.Armor);
+            data.updatePlayerHealth((byte) player.Health);
+            data.updatePlayerArmor((byte) player.Armor);
             data.updatePlayerPos(pos, angle);
 
             data.getPlayerFileHandler().saveFile();
@@ -112,6 +117,22 @@ namespace e_freeroam
         {
             Vehicle2 vehicle = ServerData.getVehicleObject(veh);
         }
+
+		[ServerEvent(Event.PlayerEnterColshape)]
+		public void PlayerEnterColshape(ColShape shape, Player player)
+		{
+			object owner = ServerData.getColShapeOwner(shape);
+			Checkpoint2 ownerCP = null;
+
+			if(owner is Organization)
+			{
+				Organization org = (Organization) owner;
+
+				ownerCP = org.getCheckpoint2();
+				ChatUtils.sendClientMessage(player, org.getColor(), $"Organization: {org.getName()}.");
+				if(PlayerDataInfo.getPlayerData(player).getPlayerAdminLevel() > 0) ChatUtils.sendClientMessage(player, org.getColor(), $"ID: {org.getID()}");
+			}
+		}
 
         [RemoteEvent("OnKeyPress")]
         public void KeyPressEvent(Player player, int key)

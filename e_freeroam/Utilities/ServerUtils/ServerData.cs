@@ -234,7 +234,7 @@ namespace e_freeroam.Utilities.ServerUtils
             0xFE // CLEAR_KEY (#:191)
         };
 
-        public const ushort maxKeys = 100, maxVehicles = 1000, maxOrgs = 12, maxCPs = 1000;
+        public const ushort maxKeys = 100, maxVehicles = 1000, maxOrgs = 12, maxCPs = 1000, maxOrgMembers = 24;
         private static ushort vehicles = 0, serverVehicleCount = 0; // vehicles: Total of all combined vehicle types, serverVehicleCount: File loaded static vehicles.
         private static ushort cpCount = 0;
 
@@ -244,9 +244,9 @@ namespace e_freeroam.Utilities.ServerUtils
 
         private static Dictionary<string, string> serverData = null;
 
-        private static List<Vehicle2> serverVehicles = new List<Vehicle2>(maxVehicles);
-        private static List<Organization> orgList = new List<Organization>(maxOrgs);
-        private static List<Checkpoint2> cpList = new List<Checkpoint2>(maxCPs);
+        private static List<Vehicle2> serverVehicles = null;
+        private static List<Organization> orgList = null;
+        private static List<Checkpoint2> cpList = null;
 
         private static FileHandler vehicleHandler = null;
         private static FileHandler serverDataHandler = null;
@@ -271,13 +271,17 @@ namespace e_freeroam.Utilities.ServerUtils
                 return;
             }
 
+			serverVehicles = new List<Vehicle2>(maxVehicles);
+			orgList = new List<Organization>(maxOrgs);
+			cpList = new List<Checkpoint2>(maxCPs);
+
             serverData = serverDataHandler.getInfo();
             string value = null;
 
             serverData.TryGetValue(ServerUtils.ServerDataInfo.WRLDTIME.ToString(), out value);
             if(serverData.ContainsKey(value)) worldTime = NumberUtils.parseInt(value, (byte) value.Length);
 
-            for(sbyte i = 0; i < maxOrgs; i++)
+            for(byte i = 0; i < maxOrgs; i++)
             {
                 orgList.Insert(i, new Organization(i));
 
@@ -288,11 +292,17 @@ namespace e_freeroam.Utilities.ServerUtils
             string orgKey = ServerUtils.ServerDataInfo.ORGS.ToString();
 
             if(serverData.ContainsKey(orgKey)) serverData.Remove(orgKey);
-            serverData.Add(orgKey, $"{orgCount}");
+            serverDataHandler.addValue(orgKey, $"{orgCount}");
 
             Console.WriteLine($"{orgCount} organizations loaded.");
             return;
         }
+
+		public static object getColShapeOwner(ColShape shape)
+		{
+			foreach(Organization org in orgList) if(org.getCheckpoint2().getColShape() == shape) return org;
+			return null;
+		}
 
         public static sbyte addOrg(string name, Color color, Player creatingPlayer)
         {
@@ -301,38 +311,46 @@ namespace e_freeroam.Utilities.ServerUtils
             sbyte orgID = ((sbyte) -1);
             for(sbyte i = 0; i < maxOrgs; i++)
             {
-                if(!orgList[i].doesOrgExist())
+                if(orgList[i] == null || !orgList[i].doesOrgExist())
                 {
                     orgID = i;
                     break;
                 }
             }
-            Organization newOrg = new Organization(orgID, creatingPlayer, name);
+            Organization newOrg = new Organization((byte) orgID, creatingPlayer, name);
 			newOrg.setColor(color);
 
             orgList.Insert(orgID, newOrg);
 
-            int count = 0;
+            byte count = 0;
             foreach(Organization org in orgList) {if(org != null) count++;}
 
             orgCount = count;
 
             return orgID;
         }
-        public static Organization getOrg(ushort id) {return orgList[id];}
+        public static Organization getOrg(sbyte id) 
+		{
+			if(id > maxOrgs || id < 0) return null;
+			return orgList[id];
+		}
 
-        public static Checkpoint2 addCP(Vector3 location, CPType cpType=CPType.NULL)
+        public static Checkpoint2 addCP(Vector3 location, uint dimension=0, CPType cpType=CPType.NULL)
         {
             if((cpCount + 1) > maxCPs) return null;
             cpCount++;
 
-            Checkpoint2 newCP = new Checkpoint2(location, cpType);
+            Checkpoint2 newCP = new Checkpoint2(location, dimension, cpType);
             ushort id = newCP.getID();
 
             cpList.Insert(id, newCP);
             return newCP;
         }
-        public static Checkpoint2 getCP(ushort id) {return cpList[id];}
+        public static Checkpoint2 getCP(ushort id) 
+		{
+			if(id > maxCPs || id < 0) return null;
+			return cpList[id];
+		}
         public static void removeCP(ushort id) 
         {
             Checkpoint2 cp = cpList[id];
@@ -392,7 +410,7 @@ namespace e_freeroam.Utilities.ServerUtils
 
                     rotZ = value.Substring(index);
 
-                    MODEL = ((uint)NumberUtils.parseInt(model, (byte) model.Length));
+                    MODEL = NumberUtils.parseUnsignedInt(model, (byte) model.Length);
                     X = NumberUtils.parseFloat(x, (byte) x.Length);
                     Y = NumberUtils.parseFloat(y, (byte) y.Length);
                     Z = NumberUtils.parseFloat(z, (byte) z.Length);
@@ -434,8 +452,6 @@ namespace e_freeroam.Utilities.ServerUtils
 
             Vehicle2 vehicle = new Vehicle2(newVehicle, type);
             serverVehicles.Insert(newVehicle.Id, vehicle);
-
-            Console.WriteLine($"addV ~ Mod: {hashKey} X: {vect.X} Y: {vect.Y} Z: {vect.Z} Rot: {rot.X} + {rot.Y} + {rot.Z}");
 
             return newVehicle.Id;
         }
@@ -494,7 +510,7 @@ namespace e_freeroam.Utilities.ServerUtils
 			return true;
 		}
 
-		public static short getTargetPlayerID(string target)
+		public static short getTargetPlayerID(string target) // Determines whether a valid playerid was given and if not derives it from name.
 		{
 			short playerid = -1;
 
