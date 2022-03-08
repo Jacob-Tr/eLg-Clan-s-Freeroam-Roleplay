@@ -1,5 +1,4 @@
 ﻿using RAGE;
-using RAGE.Game;
 using System.Collections.Generic;
 
 namespace e_freeroam_client
@@ -399,20 +398,41 @@ namespace e_freeroam_client
         };
         int[] acceptableKeys =
         {
-            keys[(int) KeyRef.N_KEY],
-            keys[(int) KeyRef.TWO_KEY]
+            keys[(int)KeyRef.N_KEY],
+            keys[(int)KeyRef.TWO_KEY],
+			keys[(int)KeyRef.ENTER_KEY],
+			keys[(int)KeyRef.ESC_KEY]
         };
         bool[] keyPressed = new bool[191];
 
+		public delegate void ToggleEngineDelegate(int vehicleid, bool boolean);
+
         public Utilities()
         {
+			Events.Add("FreezePlayer", freezePlayer);
+
+			Events.Add("SyncPosition", syncPosition);
+
+			Events.Add("SyncVehicleRot", syncVehicleRot);
+			Events.Add("ToggleEngine", ToggleEngine);
+
             Events.Tick += detectKeyPress;
-            Events.Tick += detectKeyRelease;
+            Events.Tick += detectKeyRelease; 
+
+			Events.OnPlayerJoin += onPlayerJoin;
+
+			Events.OnEntityStreamIn += onVehicleStreamIn;
         }
+
+		public void onPlayerJoin(RAGE.Elements.Player player) 
+		{
+			RAGE.Chat.Output("[OnPlayerJoin] Called");
+			RAGE.Game.Vehicle.DefaultEngineBehaviour = false;
+		}
 
         public void detectKeyPress(List<Events.TickNametagData> nametag)
         {
-            foreach (int key in acceptableKeys)
+            foreach(int key in acceptableKeys)
             {
                 if(RAGE.Input.IsDown(key) && !keyPressed[key])
                 {
@@ -424,7 +444,7 @@ namespace e_freeroam_client
 
         public void detectKeyRelease(List<Events.TickNametagData> nametag)
         {
-            foreach (int key in acceptableKeys)
+            foreach(int key in acceptableKeys)
             {
                 if (RAGE.Input.IsUp(key) && keyPressed[key])
                 {
@@ -433,5 +453,57 @@ namespace e_freeroam_client
                 }
             }
         }
+
+		public void freezePlayer(object[] args)
+		{
+			if(!(args[0] is bool)) return;
+			bool check = (bool) args[0];
+
+			RAGE.Elements.Player player = RAGE.Elements.Player.LocalPlayer;
+
+			player.FreezePosition(check);
+		}
+
+		public void onVehicleStreamIn(RAGE.Elements.Entity entity)
+		{
+			if(entity is RAGE.Elements.Vehicle) 
+			{ 
+				RAGE.Elements.Vehicle vehicle = (RAGE.Elements.Vehicle) entity;
+
+				RAGE.Events.CallRemote("SyncVehicleDataForClient", vehicle);
+
+				vehicle.SetMaxSpeed(500F);
+			}
+		}
+
+		public void syncVehicleRot(object[] args)
+		{
+			RAGE.Elements.Vehicle vehicle = (RAGE.Elements.Vehicle) args[0];
+			float heading = (float) args[1];
+
+			vehicle.SetHeading(heading);
+		}
+
+		public void syncPosition(object[] args)
+		{
+			if(!(args[0] is RAGE.Elements.Entity)) return;
+			RAGE.Elements.Entity entity = (RAGE.Elements.Entity) args[0];
+			if(!(entity is RAGE.Elements.Player)) return;
+			RAGE.Elements.Player player = (RAGE.Elements.Player) args[0];
+
+			if(!(args[1] is Vector3) || !(args[2] is float)) return;
+			Vector3 pos = (Vector3) args[1];
+			
+			player.Position = pos;
+			player.SetHeading((float) args[2]);
+		}
+
+		public static void ToggleEngine(object[] args)
+		{
+			int vehicleid = (int) args[0];
+			bool boolean = (bool) args[1];
+
+			RAGE.Game.Vehicle.SetVehicleEngineOn(vehicleid, boolean, false, false);
+		}
     }
 }
