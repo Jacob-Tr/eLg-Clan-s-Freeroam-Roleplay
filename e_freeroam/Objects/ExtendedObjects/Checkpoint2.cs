@@ -7,6 +7,9 @@ namespace e_freeroam.Objects
 {
     public class Checkpoint2
     {
+		private static ushort maxCPs = 1000;
+		private static ushort cpCount = 0;
+
         private CPType type;
         private GTANetworkAPI.Marker point = null;
 		private GTANetworkAPI.ColShape interact = null;
@@ -25,6 +28,16 @@ namespace e_freeroam.Objects
             this.id = this.point.Id;
         }
 
+		// Static checkpoint properties
+
+		public static ushort getMaxCheckpoints() {return maxCPs;}
+		public static void updateMaxCheckpoints(ushort value) {maxCPs = value;}
+
+		public static ushort getCPCount() {return cpCount;}
+		public static void updateCPCount(ushort value) {cpCount = value;}
+
+		// General checkpoint utilities
+
         public ushort getID() {return this.id;}
 
         public GTANetworkAPI.Marker getCheckpoint() {return this.point;}
@@ -32,10 +45,20 @@ namespace e_freeroam.Objects
 
         public void destroyCheckpoint() 
 		{
+			this.point.Delete();
+			this.interact.Delete();
+
 			ServerData.removeCP(this.id);
-			this.point = null;
 		}
 
 		public bool isPlayerInCP(Player player) {return NAPI.ColShape.IsPointWithinColshape(this.getColShape(), player.Position);}
+
+		public object getCheckpointOwner()
+		{
+			if(interact != null) return ServerData.getColShapeOwner(interact);
+			foreach(Organization org in ServerData.getOrgPool()) if(org.getCheckpoint2() == this) return org;
+
+			return null;
+		}
     }
 }

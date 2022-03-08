@@ -29,12 +29,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Commands\Organization\Law\" />
-    <Folder Include="Commands\Organization\Gang\" />
-    <Folder Include="Commands\Organization\Private Business\" />
+    <Folder Include="Commands\Org\Law\" />
+    <Folder Include="Commands\Org\Gang\" />
+    <Folder Include="Commands\Org\Private Business\" />
     <Folder Include="Commands\Support Team\Senior\" />
     <Folder Include="Commands\VIP\LevelTwo\" />
     <Folder Include="Commands\VIP\LevelThree\" />
+    <Folder Include="Utilities\VehicleUtils\" />
   </ItemGroup>
 
 </Project>

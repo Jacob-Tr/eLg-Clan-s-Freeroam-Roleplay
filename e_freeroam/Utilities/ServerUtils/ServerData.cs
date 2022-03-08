@@ -1,8 +1,11 @@
 ﻿using e_freeroam.Objects;
+using e_freeroam.Server_Properties;
 using e_freeroam.Utilities.PlayerUtils;
 using GTANetworkAPI;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using Checkpoint2 = e_freeroam.Objects.Checkpoint2;
 
 namespace e_freeroam.Utilities.ServerUtils
@@ -234,129 +237,639 @@ namespace e_freeroam.Utilities.ServerUtils
             0xFE // CLEAR_KEY (#:191)
         };
 
-        public const ushort maxKeys = 100, maxVehicles = 1000, maxOrgs = 12, maxCPs = 1000, maxOrgMembers = 24;
+        public const ushort maxKeys = 100;
         private static ushort vehicles = 0, serverVehicleCount = 0; // vehicles: Total of all combined vehicle types, serverVehicleCount: File loaded static vehicles.
-        private static ushort cpCount = 0;
 
-        private static int orgCount = 0, worldTime = 0;
+        private static uint worldTime = 0, accounts = 0, banned_ips = 0;
+		private static ushort businesses = 0, properties = 0;
+		private static byte orgs = 0;
+
+		private static bool serverDataListsInitialized = false, debugEnabled = false;
 
         private static string serverDir = "scriptfiles/";
 
-        private static Dictionary<string, string> serverData = null;
-
         private static List<Vehicle2> serverVehicles = null;
         private static List<Organization> orgList = null;
+		private static List<GasStation> gasList = null;
+		private static List<Store> storeList = null;
+		private static List<Business> businessList = null;
+		private static List<House> propertyList = null;
         private static List<Checkpoint2> cpList = null;
+		private static List<EnterExit> enExList = null;
 
         private static FileHandler vehicleHandler = null;
         private static FileHandler serverDataHandler = null;
 
+
+		// General Server Utilities
+
+		public static bool isAnyoneOnline() {return (PlayerDataInfo.getPlayersOnline() != 0);}
+
+		public static bool haveServerDataListsBeenInitialized() {return serverDataListsInitialized;}
+
+		public static string getRealServerTime() {return DateTime.Now.ToString();}
+
         public static int getKeyValue(Utilities.ServerUtils.KeyRef refID) {return keys[(int) refID];}
 
-        public static List<Vehicle2> getVehiclePool() {return serverVehicles;}
-        public static List<Organization> getOrgPool() {return orgList;}
-        public static List<Checkpoint2> getCPPool() {return cpList;}
+		public static void logToConsole(string text) {if(debugEnabled) NAPI.Util.ConsoleOutput($"[{((text.Length != 0) ? getRealServerTime() : "")}] {text}");}
+
+		public static void sendServerFatalError(string text) 
+		{
+			bool debug = debugEnabled;
+			debugEnabled = true;
+			logToConsole($"Fatal Error: <{text}>");
+			debugEnabled = debug;
+		}
+
+		public static void toggleServerDebug(bool value) {debugEnabled = value;}
+
+		public static object getColShapeOwner(ColShape shape) // Should probably make an object 'ColShape2' to store such info.
+		{
+			logToConsole("getColShapeOwner called.");
+			if(shape == null) return null;
+			foreach(Business bus in getBusinessPool()) 
+			{
+				if(bus == null) continue;
+				if(bus.getBusCP().getColShape() == shape) return bus;
+			}
+			logToConsole("Bus is fine");
+			foreach(Store store in getStorePool())
+			{
+				if(store == null) continue;
+				if(store.getStoreCP().getColShape() == shape) return store;
+			}
+			logToConsole("Store is fine");
+			foreach(GasStation gas in getGasPool())
+			{
+				if(gas == null) continue;
+				if(gas.getGasStationCP().getColShape() == shape) return gas;
+			}
+			logToConsole("Gas is fine");
+			foreach(Organization org in getOrgPool())
+			{
+				if(org == null) continue;
+				if(org.getCheckpoint2().getColShape() == shape) return org;
+			}
+			foreach(EnterExit enEx in getEnExPool())
+			{
+				if(enEx == null) continue;
+				if(enEx.getEnExColshape() == shape) return enEx;
+			}
+			return null;
+		}
+
+		public static void saveServerData() 
+		{
+			serverDataHandler.addValue(ServerDataInfo.ACCOUNTS.ToString(), $"{accounts}");
+			serverDataHandler.addValue(ServerDataInfo.IPS_BANNED.ToString(), $"{banned_ips}");
+			serverDataHandler.addValue(ServerDataInfo.WRLDTIME.ToString(), $"{(int) NAPI.World.GetTime().TotalSeconds}");
+            serverDataHandler.addValue(ServerDataInfo.ORGS.ToString(), $"{orgs}");
+			serverDataHandler.addValue(ServerDataInfo.BUSES.ToString(), $"{businesses}");
+			serverDataHandler.addValue(ServerDataInfo.PROPS.ToString(), $"{properties}");
+
+			serverDataHandler.saveFile();
+		}
+
+		private static void setWorldTime()
+		{
+			short hours = 0;
+			byte minutes = 0, seconds = 0;
+			NumberUtils.processTime(worldTime, ref hours, ref minutes, ref seconds);
+
+			NAPI.World.SetTime(hours, minutes, seconds);
+
+			Console.WriteLine($"~ World time set to: {hours}:{minutes}:{seconds}");
+		}
+
+		public static uint getAccountCount() {return accounts;}
+		public static void updateAccountCount(uint value) 
+		{
+			accounts = value;
+			serverDataHandler.addValue(ServerDataInfo.ACCOUNTS.ToString(), $"{accounts}");
+
+			serverDataHandler.saveFile();
+		}
+
+		public static string getDefaultServerDir() {return serverDir;}
+
+		//* Retrieve server data pools
+
+        public static List<Vehicle2> getVehiclePool() {return serverVehicles.ToList<Vehicle2>();}
+        public static List<Organization> getOrgPool() {return orgList.ToList<Organization>();}
+		public static List<Business> getBusinessPool() {return businessList.ToList<Business>();}
+		public static List<Store> getStorePool() {return storeList.ToList<Store>();}
+		public static List<House> getPropertyPool() {return propertyList.ToList<House>();}
+		public static List<GasStation> getGasPool() {return gasList.ToList<GasStation>();}
+        public static List<Checkpoint2> getCPPool() {return cpList.ToList<Checkpoint2>();}
+		public static List<EnterExit> getEnExPool() {return enExList.ToList<EnterExit>();}
+
+		//* (Un)banning
+
+		public static uint getBannedIPCount() {return banned_ips;}
+		public static void updateBannedIPCount(uint value) 
+		{
+			banned_ips = value;
+			serverDataHandler.addValue(ServerDataInfo.IPS_BANNED.ToString(), $"{banned_ips}");
+
+			saveServerData();
+		}
+
+		public static void banIP(string ip)
+		{
+			FileHandler ipHandler = new FileHandler(FileTypes.BAN, $"{getDefaultServerDir()}ServerData", "BannedIPs");
+			if(!ipHandler.loadFile())
+			{
+				updateBannedIPCount(0);
+
+				ipHandler.saveFile();
+				ipHandler.loadFile();
+			}
+			
+			updateBannedIPCount(getBannedIPCount() + 1);
+
+			ipHandler.addValue($"IP{getBannedIPCount()}", ip);
+			ipHandler.saveFile();
+
+			ipHandler = null;
+		}
+		public static bool isIPBanned(string ip)
+		{
+			FileHandler ipHandler = new FileHandler(FileTypes.BAN, $"{getDefaultServerDir()}ServerData", "BannedIPs");
+			if(!ipHandler.loadFile()) return false;
+
+			bool check = ipHandler.containsValue(ip);
+			ipHandler = null;
+
+			return check;
+		}
+		public static void unbanIP(string ip)
+		{
+			FileHandler ipHandler = new FileHandler(FileTypes.BAN, $"{getDefaultServerDir()}ServerData", "BannedIPs");
+			if(!ipHandler.loadFile()) return;
+
+			string key = ipHandler.getKey(ip);
+			ipHandler.removeValue(key);
+
+			ipHandler.saveFile();
+			ipHandler = null;
+		}
+
+		public static void unbanPlayer(string name)
+		{
+			FileHandler unbanHandle = new FileHandler(FileTypes.PLAYER, $"{ServerData.getDefaultServerDir()}PlayerData/{name[0]}", $"{name}");
+			if(!unbanHandle.loadFile()) return;
+
+			unbanHandle.addValue(PlayerInfo.BANNED.ToString(), $"{0}");
+			unbanHandle.saveFile();
+
+			unbanHandle = null;
+			return;
+		}
+
+		// Server Data Initialization
+
+		public static void initializeServerDataLists()
+		{
+			PlayerDataInfo.initializePlayerList();
+
+			serverVehicles = ObjectUtils.generateListOfNull(Vehicle2.getMaxVehicles()).Cast<Vehicle2>().ToList<Vehicle2>();
+			orgList = ObjectUtils.generateListOfNull(Organization.getMaxOrgs()).Cast<Organization>().ToList<Organization>();
+			gasList = ObjectUtils.generateListOfNull(GasStation.getMaxGasStations()).Cast<GasStation>().ToList<GasStation>();
+			storeList = ObjectUtils.generateListOfNull(Store.getMaxStores()).Cast<Store>().ToList<Store>();
+			businessList = ObjectUtils.generateListOfNull(Business.getMaxBusinesses()).Cast<Business>().ToList<Business>();
+			propertyList = ObjectUtils.generateListOfNull(House.getMaxHouses()).Cast<House>().ToList<House>();
+			cpList = ObjectUtils.generateListOfNull(Checkpoint2.getMaxCheckpoints()).Cast<Checkpoint2>().ToList<Checkpoint2>();
+			enExList = ObjectUtils.generateListOfNull(EnterExit.getMaxEnterExits()).Cast<EnterExit>().ToList<EnterExit>();
+
+			serverDataListsInitialized = true;
+		}
+
+		private static void createServerDataFile()
+		{
+			if(serverDataHandler == null) return;
+
+			serverDataHandler.addValue(ServerDataInfo.ACCOUNTS.ToString(), "0");
+			serverDataHandler.addValue(ServerDataInfo.IPS_BANNED.ToString(), "0");
+            serverDataHandler.addValue(ServerDataInfo.WRLDTIME.ToString(), "0");
+            serverDataHandler.addValue(ServerDataInfo.ORGS.ToString(), "0");
+			serverDataHandler.addValue(ServerDataInfo.BUSES.ToString(), "0");
+			serverDataHandler.addValue(ServerDataInfo.PROPS.ToString(), "0");
+
+            serverDataHandler.saveFile();
+            serverDataHandler.loadFile();
+		}
 
         public static void loadServerData()
         {
             serverDataHandler = new FileHandler(FileTypes.SERVER, getDefaultServerDir() + "ServerData", "Server");
 
-            if(!serverDataHandler.loadFile())
-            {
-                serverDataHandler.addValue(ServerUtils.ServerDataInfo.WRLDTIME.ToString(), "0");
-                serverDataHandler.addValue(ServerUtils.ServerDataInfo.ORGS.ToString(), "0");
+            if(!serverDataHandler.loadFile()) createServerDataFile();
 
-                serverDataHandler.saveFile();
-                serverDataHandler.loadFile();
-                return;
-            }
+			bool failed = false;
 
-			serverVehicles = new List<Vehicle2>(maxVehicles);
-			orgList = new List<Organization>(maxOrgs);
-			cpList = new List<Checkpoint2>(maxCPs);
+			accounts = NumberUtils.parseUnsignedInt(serverDataHandler.getValue(ServerDataInfo.ACCOUNTS.ToString(), true, "0"), ref failed);
+			banned_ips = NumberUtils.parseUnsignedInt(serverDataHandler.getValue(ServerDataInfo.IPS_BANNED.ToString(), true, "0"), ref failed);
+			worldTime = NumberUtils.parseUnsignedInt(serverDataHandler.getValue(ServerDataInfo.WRLDTIME.ToString(), true, "0"), ref failed);
+			orgs = NumberUtils.parseByte(serverDataHandler.getValue(ServerDataInfo.ORGS.ToString(), true, "0"), ref failed);
+			businesses = NumberUtils.parseUnsignedShort(serverDataHandler.getValue(ServerDataInfo.BUSES.ToString(), true, "0"), ref failed);
+			properties = NumberUtils.parseUnsignedShort(serverDataHandler.getValue(ServerDataInfo.PROPS.ToString(), true, "0"), ref failed);
 
-            serverData = serverDataHandler.getInfo();
-            string value = null;
+			loadEnExs(); // Load EnterExits first because they need to exist in-order to be linked.
+			loadOrganizations();
+			loadBusinesses();
+			loadGasStations();
+			loadProperties();
+			loadStores();
 
-            serverData.TryGetValue(ServerUtils.ServerDataInfo.WRLDTIME.ToString(), out value);
-            if(serverData.ContainsKey(value)) worldTime = NumberUtils.parseInt(value, (byte) value.Length);
+			updateServerCounts();
 
-            for(byte i = 0; i < maxOrgs; i++)
-            {
-                orgList.Insert(i, new Organization(i));
+			setWorldTime();
 
-                if(orgList[i].doesOrgExist()) orgCount++;
-                else orgList.Insert(i, null);
-            }
-
-            string orgKey = ServerUtils.ServerDataInfo.ORGS.ToString();
-
-            if(serverData.ContainsKey(orgKey)) serverData.Remove(orgKey);
-            serverDataHandler.addValue(orgKey, $"{orgCount}");
-
-            Console.WriteLine($"{orgCount} organizations loaded.");
+			logToConsole("Finished Loading Server Data");
             return;
-        }
-
-		public static object getColShapeOwner(ColShape shape)
-		{
-			foreach(Organization org in orgList) if(org.getCheckpoint2().getColShape() == shape) return org;
-			return null;
 		}
 
-        public static sbyte addOrg(string name, Color color, Player creatingPlayer)
-        {
-            if((orgCount + 1) >= maxOrgs) return -1;
-
-            sbyte orgID = ((sbyte) -1);
-            for(sbyte i = 0; i < maxOrgs; i++)
-            {
-                if(orgList[i] == null || !orgList[i].doesOrgExist())
-                {
-                    orgID = i;
-                    break;
-                }
-            }
-            Organization newOrg = new Organization((byte) orgID, creatingPlayer, name);
-			newOrg.setColor(color);
-
-            orgList.Insert(orgID, newOrg);
-
-            byte count = 0;
-            foreach(Organization org in orgList) {if(org != null) count++;}
-
-            orgCount = count;
-
-            return orgID;
-        }
-        public static Organization getOrg(sbyte id) 
+		public static void updateServerCounts()
 		{
-			if(id > maxOrgs || id < 0) return null;
-			return orgList[id];
+			orgs = Organization.getOrgCount();
+			properties = House.getPropertyCount();
+			businesses = Business.getBusCount();
 		}
 
-        public static Checkpoint2 addCP(Vector3 location, uint dimension=0, CPType cpType=CPType.NULL)
-        {
-            if((cpCount + 1) > maxCPs) return null;
-            cpCount++;
+		// EnterExit related
 
-            Checkpoint2 newCP = new Checkpoint2(location, dimension, cpType);
-            ushort id = newCP.getID();
-
-            cpList.Insert(id, newCP);
-            return newCP;
-        }
-        public static Checkpoint2 getCP(ushort id) 
+		public static void saveEnExs()
 		{
-			if(id > maxCPs || id < 0) return null;
-			return cpList[id];
+			FileHandler enExHandler = EnterExit.getEnExHandler();
+
+			foreach(EnterExit enEx in getEnExPool())
+			{
+				if(enEx == null) continue;
+				ushort id = enEx.getEnExID();
+				Vector3 pos = enEx.getEnExPos();
+				float x = pos.X, y = pos.Y, z = pos.Z;
+				uint world = enEx.getEnExWorld();
+
+				ushort linkedID = ushort.MaxValue;
+				if(enEx.getLinkedEnex() != null) linkedID = enEx.getLinkedEnex().getEnExID();
+
+				string enExStr = $"{x} {y} {z} {linkedID} {world}";
+				enExHandler.addValue($"EnEx{id}", enExStr);
+			}
+
+			enExHandler.saveFile();
 		}
-        public static void removeCP(ushort id) 
-        {
-            Checkpoint2 cp = cpList[id];
-            cpList[id] = null;
-            cp.getCheckpoint().Delete();
-        }
+
+		public static void loadEnExs()
+		{
+			FileHandler enExHandler = EnterExit.getEnExHandler();
+			if(!enExHandler.loadFile()) return;
+
+			string key = null;
+			ushort count = 0;
+			byte index = 0;
+			bool failed = false;
+
+			for(ushort i = 0; i < EnterExit.getMaxEnterExits(); i++)
+			{
+				key = $"EnEx{i}";
+				if(!enExHandler.containsKey(key)) continue;
+				string enExStr = enExHandler.getValue(key);
+
+				float x = NumberUtils.parseFloat(ChatUtils.strTok(enExStr, ref index), ref failed), y = NumberUtils.parseFloat(ChatUtils.strTok(enExStr, ref index), ref failed), z = NumberUtils.parseFloat(ChatUtils.strTok(enExStr, ref index), ref failed);
+				ushort linkedID = NumberUtils.parseUnsignedShort(ChatUtils.strTok(enExStr, ref index), ref failed);
+				uint world = NumberUtils.parseUnsignedInt(ChatUtils.strTok(enExStr, ref index), ref failed);
+
+
+				EnterExit enEx = new EnterExit(new Vector3(x, y, z), world, linkedID, i);
+				addEnEx(enEx, i);
+
+				count++;
+				index = 0;
+			}
+
+			EnterExit.updateEnExCount(count);
+		}
+
+		public static void addEnEx(EnterExit enEx, ushort id=ushort.MaxValue)
+		{
+			if(enEx != null)
+			{
+				if(id == ushort.MaxValue) id = enEx.getEnExID();
+				if(getEnEx(id) != null) removeEnEx(id);
+			}
+
+			if(id >= EnterExit.getMaxEnterExits())
+			{
+				logToConsole($"Attempt to add EnterExit {id}/{EnterExit.getMaxEnterExits()} failed.");
+				return;
+			}
+
+			enExList.Insert(id, enEx);
+			EnterExit.updateEnExCount((ushort) (EnterExit.getEnExCount() + 1));
+		}
+
+		public static void removeEnEx(ushort id)
+		{
+			EnterExit.getEnExHandler().removeValue($"EnEx{id}");
+
+			List<object> obj = ObjectUtils.removeObjectFromList(businessList.Cast<object>().ToList<object>(), id, byte.MaxValue, EnterExit.getMaxEnterExits());
+			enExList = (List<EnterExit>) obj.Cast<EnterExit>().ToList<EnterExit>();
+
+			logToConsole($"Business #{id} was removed.");
+			EnterExit.updateEnExCount((ushort) (EnterExit.getEnExCount() - 1));
+
+			saveEnExs();
+		}
+
+		public static EnterExit getEnEx(ushort id) {return enExList[id];}
+
+		// Business related
+
+		public static void loadBusinesses()
+		{
+			for(byte i = 0; i < Business.getMaxBusinesses(); i++)
+			{
+				bool failed = false;
+				Business bus = new Business(ref failed, newID: i);
+				if(failed) bus = null;
+
+				addBusiness(bus, i);
+			}
+
+			logToConsole($"{Business.getBusCount()} businesses loaded.");
+		}
+
+		public static void addBusiness(Business bus, byte id=byte.MaxValue)
+		{
+			string businessName = "";
+			if(bus != null) 
+			{ 
+				businessName = bus.getBusinessName();
+				logToConsole($"Adding business: {businessName} in ID slot {((id == byte.MaxValue) ? bus.getBusinessID() : id)}.");
+				if(id == byte.MaxValue) id = bus.getBusinessID();
+
+				if(getBusiness(id) != null) removeBus(id);
+			}
+
+			if(id >= Business.getMaxBusinesses())
+			{
+				logToConsole($"Attempt to add business {id}/{Business.getMaxBusinesses()} failed.");
+				return;
+			}
+
+			businessList.Insert(id, bus);
+			Business.updateBusCount((byte) (Business.getBusCount() + 1));
+		}
+		public static void removeBus(byte id)
+		{
+			getBusiness(id).deleteBusiness();
+
+			List<object> obj = ObjectUtils.removeObjectFromList(businessList.Cast<object>().ToList<object>(), id, byte.MaxValue, Business.getMaxBusinesses());
+			businessList = (List<Business>) obj.Cast<Business>().ToList<Business>();
+
+			logToConsole($"Business #{id} was removed.");
+			Business.updateBusCount((byte) (Business.getBusCount() - 1));
+		}
+
+		public static Business getBusiness(byte id) {return businessList[id];}
+
+		// Property(house) related
+
+		public static void saveProperties()
+		{
+			foreach(House prop in getPropertyPool())
+			{
+				if(prop == null || prop.getPropertyHandler() == null) continue;
+				prop.saveProperty();
+			}
+		}
+
+		public static void loadProperties()
+		{
+			House prop = null;
+			bool failed = false;
+
+			for(byte i = 0; i < House.getMaxHouses(); i++)
+			{
+				prop = new House(ref failed, newID: i);
+				if(!failed) addProperty(prop, i);
+				failed = false;
+			}
+		}
+
+		public static void addProperty(House prop, byte id=byte.MaxValue)
+		{
+			if(prop != null)
+			{
+				if(id == byte.MaxValue) id = prop.getPropertyID();
+
+				if(propertyList[id] != null) removeProperty(id);
+			}
+
+			if(id >= House.getMaxHouses())
+			{
+				logToConsole($"Attempt to add property {id}/{House.getMaxHouses()} failed.");
+				return;
+			}
+
+			propertyList.Insert(id, prop);
+			House.updatePropertyCount((byte) (House.getPropertyCount() + 1));
+		}
+
+		public static void removeProperty(byte id)
+		{
+			getProperty(id).getPropertyHandler().deleteFile();
+
+			List<object> obj = ObjectUtils.removeObjectFromList(propertyList.Cast<object>().ToList<object>(), id, byte.MaxValue, House.getMaxHouses());
+			propertyList = (List<House>) obj.Cast<House>().ToList<House>();
+
+			logToConsole($"Property #{id} was removed.");
+			House.updatePropertyCount((byte) (House.getPropertyCount() - 1));
+		}
+
+		public static House getProperty(byte id) {return propertyList[id];}
+
+		// Store related
+
+		public static void saveStores()
+		{
+			FileHandler storeHandler = Store.getStoreHandler();
+
+			foreach(Store store in getStorePool())
+			{
+				if(store == null) continue;
+				ushort id = store.getStoreID();
+				float x = store.getStorePos().X, y = store.getStorePos().Y, z = store.getStorePos().Z;
+				uint world = store.getStoreWorld();
+
+				string storeInfo = $"{x} {y} {z} {world}";
+				storeHandler.addValue($"Store{id}" , storeInfo);
+			}
+
+			storeHandler.saveFile();
+			storeHandler = null;
+		}
+		public static void loadStores()
+		{
+			FileHandler storeHandler = Store.getStoreHandler();
+			if(!storeHandler.loadFile()) 
+			{
+				logToConsole("Failed to load stores.");
+				return;
+			}
+
+			for(ushort i = 0; i < Store.getMaxStores(); i++)
+			{
+				string key = $"Store{i}";
+				if(!storeHandler.containsKey(key)) continue;
+
+				string storeInfo = storeHandler.getValue(key);
+				byte index = 0;
+
+				string xStr = ChatUtils.strTok(storeInfo, ref index), yStr = ChatUtils.strTok(storeInfo, ref index), zStr = ChatUtils.strTok(storeInfo, ref index), worldStr = ChatUtils.strTok(storeInfo, ref index);
+				bool failed = false;
+
+				float x = NumberUtils.parseFloat(xStr, ref failed), y = NumberUtils.parseFloat(yStr, ref failed), z = NumberUtils.parseFloat(zStr, ref failed);
+				uint world = NumberUtils.parseUnsignedInt(worldStr, ref failed);
+
+				Store store = new Store(x, y, z, world, i);
+				addStore(store, i);
+			}
+			storeHandler = null;
+		}
+
+		public static void addStore(Store store, ushort id=ushort.MaxValue)
+		{
+			if(store != null)
+			{
+				if(id == ushort.MaxValue) id = store.getStoreID();
+				if(storeList[id] != null) removeStore(id);
+			}
+
+			if(id >= Store.getMaxStores())
+			{
+				logToConsole($"Attempt to add store {id}/{Store.getMaxStores()} failed.");
+				return;
+			}
+
+			storeList.Insert(id, store);
+			Store.updateStoreCount((ushort) (Store.getStoreCount() + 1));
+
+			store.updateStoreCP();
+
+			saveStores();
+		}
+
+		public static void removeStore(ushort id)
+		{
+			if(id >= Store.getMaxStores()) return;
+
+			Store store = getStore(id);
+			if(store == null) return;
+
+			removeCP(store.getStoreCP().getID());
+
+			Store.getStoreHandler().removeValue($"Store{id}");
+			List<object> obj = ObjectUtils.removeObjectFromList(storeList.Cast<object>().ToList<object>(), id, ushort.MaxValue, Store.getMaxStores());
+			storeList = (List<Store>) obj.Cast<Store>().ToList<Store>();
+
+			logToConsole($"Store #{id} was removed.");
+			Store.updateStoreCount((byte) (Store.getStoreCount() - 1));
+
+			saveStores();
+		}
+
+		public static Store getStore(ushort id) {return storeList[id];}
+
+		// Gasstation related
+
+		public static void saveGasStations()
+		{
+			FileHandler gasHandler = GasStation.getGasHandler();
+			foreach(GasStation gas in getGasPool())
+			{
+				if(gas == null) continue;
+				ushort id = gas.getGasStationID();
+
+				Vector3 pos = gas.getGasStationPos();
+				float x = pos.X, y = pos.Y, z = pos.Z;
+
+				string gasInfo = $"{x} {y} {z}";
+				gasHandler.addValue($"Gas{id}", gasInfo);
+			}
+
+			gasHandler.saveFile();
+			gasHandler = null;
+		}
+
+		public static void loadGasStations()
+		{
+			FileHandler gasHandler = GasStation.getGasHandler();
+			if(!gasHandler.loadFile())
+			{
+				logToConsole("Failed to load Gas Stations.");
+				return;
+			}
+
+			for(byte i = 0; i < GasStation.getMaxGasStations(); i++)
+			{
+				string key = $"Gas{i}";
+				if(!gasHandler.containsKey(key)) continue;
+
+				string gasInfo = gasHandler.getValue(key);
+				byte index = 0;
+
+				string xStr = ChatUtils.strTok(gasInfo, ref index), yStr = ChatUtils.strTok(gasInfo, ref index), zStr = ChatUtils.strTok(gasInfo, ref index);
+				bool failed = false;
+
+				float x = NumberUtils.parseFloat(xStr, ref failed), y = NumberUtils.parseFloat(yStr, ref failed), z = NumberUtils.parseFloat(zStr, ref failed);
+			
+				GasStation gas = new GasStation(x, y, z, i);
+				addGasStation(gas, i);
+			}
+			gasHandler = null;
+		}
+
+		public static void addGasStation(GasStation station, byte id=byte.MaxValue)
+		{
+			if(station != null && id == byte.MaxValue) id = station.getGasStationID();
+			else if(station == null) return;
+
+			if(id >= GasStation.getMaxGasStations())
+			{
+				logToConsole($"Attempt to add gas station {id}/{GasStation.getMaxGasStations()} failed.");
+				return;
+			}
+
+			if(gasList[id] != null) removeGasStation(id);
+
+			station.updateGasStationCP();
+
+			gasList.Insert(id, station);
+			GasStation.updateGasStationCount((byte) (GasStation.getGasStationCount() - 1));
+		}
+
+		public static void removeGasStation(byte id)
+		{
+			GasStation gas = getGastStation(id);
+			if(gas == null) return;
+
+			removeCP(gas.getGasStationCP().getID());
+
+			GasStation.getGasHandler().removeValue($"Gas{id}");
+			List<object> obj = ObjectUtils.removeObjectFromList(gasList.Cast<object>().ToList<object>(), id, byte.MaxValue, GasStation.getMaxGasStations());
+			gasList = (List<GasStation>) obj.Cast<GasStation>().ToList<GasStation>();
+
+			logToConsole($"Gas station #{id} was removed.");
+			GasStation.updateGasStationCount((byte) (GasStation.getGasStationCount() - 1));
+
+			saveGasStations();
+		}
+
+		public static GasStation getGasStation(byte id) {return gasList[id];}
+
+		// Server vehicle related
 
         public static FileHandler getVehicleHandler() {return vehicleHandler;}
         public static void loadVehicles()
@@ -378,7 +891,7 @@ namespace e_freeroam.Utilities.ServerUtils
 
             float X = 0.0F, Y = 0.0F, Z = 0.0F, ROT_X = 0.0F, ROT_Y = 0.0F, ROT_Z = 0.0F;
 
-            for(int i = 0; i < maxVehicles; i++)
+            for(int i = 0; i < Vehicle2.getMaxVehicles(); i++)
             {
                 key = ("VEH#" + i);
                 if(vehicleDir.ContainsKey(key))
@@ -410,13 +923,15 @@ namespace e_freeroam.Utilities.ServerUtils
 
                     rotZ = value.Substring(index);
 
-                    MODEL = NumberUtils.parseUnsignedInt(model, (byte) model.Length);
-                    X = NumberUtils.parseFloat(x, (byte) x.Length);
-                    Y = NumberUtils.parseFloat(y, (byte) y.Length);
-                    Z = NumberUtils.parseFloat(z, (byte) z.Length);
-                    ROT_X = NumberUtils.parseFloat(rotX, (byte) rotX.Length);
-                    ROT_Y = NumberUtils.parseFloat(rotY, (byte) rotY.Length);
-                    ROT_Z = NumberUtils.parseFloat(rotZ, (byte) rotZ.Length);
+					bool failed = false;
+
+                    MODEL = NumberUtils.parseUnsignedInt(model, ref failed, (byte) model.Length);
+                    X = NumberUtils.parseFloat(x, ref failed, (byte) x.Length);
+                    Y = NumberUtils.parseFloat(y, ref failed, (byte) y.Length);
+                    Z = NumberUtils.parseFloat(z, ref failed, (byte) z.Length);
+                    ROT_X = NumberUtils.parseFloat(rotX, ref failed, (byte) rotX.Length);
+                    ROT_Y = NumberUtils.parseFloat(rotY, ref failed, (byte) rotY.Length);
+                    ROT_Z = NumberUtils.parseFloat(rotZ, ref failed, (byte) rotZ.Length);
 
                     Vector3 vect = new Vector3(X, Y, Z);
                     Vector3 angle = new Vector3(ROT_X, ROT_Y, ROT_Z);
@@ -425,75 +940,251 @@ namespace e_freeroam.Utilities.ServerUtils
                     addVehicle(MODEL, vect, angle, -1, -1, VehicleType.SERVER_VEHICLE);
                 }
             }
-            Console.WriteLine($"{serverVehicleCount} vehicles loaded.");
+            logToConsole($"{serverVehicleCount} vehicles loaded.");
         }
 
         public static void saveVehicles() {vehicleHandler.saveFile();}
 
         public static bool addVehicleToServer(Vehicle2 vehicle)
         {
-            if((vehicles + 1) >= maxVehicles) return false;
+            if((vehicles + 1) >= Vehicle2.getMaxVehicles()) return false;
 
             Vehicle veh = vehicle.getVehicle();
             string model = veh.Model.ToString();
             string line = $"{model} {veh.Position.X} {veh.Position.Y} {veh.Position.Z} {veh.Rotation.X} {veh.Rotation.Y} {veh.Rotation.Z}";
 
             vehicleHandler.addValue("VEH#" + ++serverVehicleCount, line);
+
+			saveVehicles();
             return true;
         }
 
         public static int addVehicle(uint hashKey, Vector3 vect, Vector3 rot, int color1=-1, int color2=-1, VehicleType type=VehicleType.CMD_VEHICLE) 
         {
-            if((vehicles + 1) >= maxVehicles) return -1;
+            if((vehicles + 1) >= Vehicle2.getMaxVehicles()) return -1;
             vehicles++;
 
             Vehicle newVehicle = NAPI.Vehicle.CreateVehicle(hashKey, vect, rot.Z, color1, color2);
-            NAPI.Vehicle.SpawnVehicle(newVehicle, vect, rot.Z);
+            NAPI.Vehicle.SpawnVehicle(newVehicle.Handle, vect, rot.Z);
+
+			newVehicle.Rotation = rot;
 
             Vehicle2 vehicle = new Vehicle2(newVehicle, type);
-            serverVehicles.Insert(newVehicle.Id, vehicle);
+            serverVehicles.Insert(newVehicle.Value, vehicle);
 
-            return newVehicle.Id;
+			logToConsole($"Vehicle {newVehicle.Value} added.");
+
+            return newVehicle.Value;
         }
         public static void removeVehicle(int vehicleid) 
         {
             Vehicle2 vehicle = serverVehicles[vehicleid];
-            vehicle.getVehicle().Delete();
+			if(vehicle == null) return;
 
+			vehicles--;
+
+            vehicle.getVehicle().Delete();
             serverVehicles.RemoveAt(vehicleid);
+
+			logToConsole($"Vehicle #{vehicleid} removed.");
         }
-        public static int getVehicleID(Vehicle2 vehicle) {return vehicle.getVehicle().Id;}
+
+		public static Vehicle2 getVehicleFromID(int vehicleid) 
+		{
+			foreach(Vehicle2 vehicle in getVehiclePool().ToList<Vehicle2>()) if(vehicle.getVehicle().Value == vehicleid) return vehicle;
+			return null;
+		}
 
         public static Vehicle2 getVehicleObject(Vehicle vehicle)
         {
-            foreach(Vehicle2 veh in serverVehicles) if(veh.getVehicle().Equals(vehicle)) return veh;
+            foreach(Vehicle2 veh in serverVehicles.ToList<Vehicle2>()) if(veh.getVehicle().Equals(vehicle)) return veh;
             return null;
         }
 
-        public static string getDefaultServerDir() {return serverDir;}
+		public static void respawnAllVehicles()
+		{
+			foreach(Vehicle2 vehicle in getVehiclePool().ToList<Vehicle2>()) 
+			{
+				if(vehicle == null) continue;
 
-        public static bool commandCheck(Player player, out string output, ushort adminLevel=0, string[] parameters=null, byte size=((byte) 0))
+				Vehicle veh = vehicle.getVehicle();
+				if(veh.Occupants.Count != 0) continue;
+
+				vehicle.respawnVeh();
+			}
+		}
+
+		// Organization related
+
+		private static void loadOrganizations()
+		{
+			if(serverDataHandler == null)
+			{
+				sendServerFatalError("Server Data Handler is null.");
+				return;
+			}
+
+			byte checkOrgCount = 0;
+            for(byte i = 0; i < Organization.getMaxOrgs(); i++)
+            {
+                orgList.Insert(i, new Organization(i));
+
+                if(orgList[i].doesOrgExist()) checkOrgCount++;
+                else orgList.Insert(i, null);
+            }
+
+			Organization.updateOrgCount(checkOrgCount);
+
+            serverDataHandler.addValue(ServerUtils.ServerDataInfo.ORGS.ToString(), $"{Organization.getOrgCount()}");
+			Console.WriteLine($"{Organization.getOrgCount()} organizations loaded.");
+		}
+
+        public static sbyte addOrg(string name, Color color, Player creatingPlayer)
+        {
+            if((Organization.getOrgCount() + 1) >= Organization.getMaxOrgs()) return -1;
+
+            sbyte orgID = ((sbyte) -1);
+            for(sbyte i = 0; i < Organization.getMaxOrgs(); i++)
+            {
+                if(orgList[i] == null || !orgList[i].doesOrgExist())
+                {
+                    orgID = i;
+					ChatUtils.sendClientMessage(creatingPlayer, ServerData.COLOR_RED, $"Org ID set to {orgID}");
+                    break;
+                }
+            }
+            Organization newOrg = new Organization((byte) orgID, creatingPlayer, name);
+			newOrg.setColor(color);
+
+            orgList.Insert(orgID, newOrg);
+
+            byte count = 0;
+            foreach(Organization org in orgList.ToList<Organization>()) {if(org != null && org.doesOrgExist()) count++;}
+
+            Organization.updateOrgCount(count);
+
+            return orgID;
+        }
+        public static Organization getOrg(sbyte id) 
+		{
+			if(id > Organization.getMaxOrgs() || id < 0) return null;
+			return orgList[id];
+		}
+
+		public static void removeOrg(byte id)
+		{
+			if(id > Organization.getMaxOrgs() || id < 0) return;
+			orgList.Insert(id, null);
+
+	        byte count = 0;
+            foreach(Organization org in orgList.ToList<Organization>()) {if(org != null && org.doesOrgExist()) count++;}
+
+            Organization.updateOrgCount(count);
+		}
+
+		// Checkpoint related
+
+        public static Checkpoint2 addCP(Vector3 location, uint dimension=0, CPType cpType=CPType.NULL)
+        {
+            if((Checkpoint2.getCPCount() + 1) > Checkpoint2.getMaxCheckpoints()) 
+			{
+				logToConsole($"Failed to add checkpoint (type: {cpType.ToString()}) due to max checkpoints loaded.");
+				return null;
+			}
+			Checkpoint2.updateCPCount((ushort) (Checkpoint2.getCPCount() + 1));
+
+            Checkpoint2 newCP = new Checkpoint2(location, dimension, cpType);
+            ushort id = newCP.getID();
+
+            cpList.Insert(id, newCP);
+            return newCP;
+        }
+        public static Checkpoint2 getCP(ushort id) 
+		{
+			if(id < 0 || id > Checkpoint2.getMaxCheckpoints()) return null;
+			return cpList[id];
+		}
+        public static void removeCP(ushort id) 
+        {
+			if(cpList[id] == null) return;
+            Checkpoint2 cp = cpList[id];
+            cpList[id] = null;
+            cp.getCheckpoint().Delete();
+        }
+
+		// Command Utilities
+
+        public static bool commandCheck(Player player, out string output, string[] parameters=null, bool orgCMD=false, byte orgLevel=0, bool registered=true, bool logged=true, bool mustSpawn = true, byte adminLevel=0, byte supportLevel=0, byte vipLevel=0)
         {
             PlayerData data = PlayerDataInfo.getPlayerData(player);
+
             bool failed = false;
+			byte size = (parameters == null) ? (byte) 0 : (byte) parameters.Length;
             output = null;
 
-            if(data.getPlayerAdminLevel() < adminLevel)
-            {
-                output = ChatUtils.colorString("ERROR: Command not found.", ChatUtils.getColorAsHex(ServerData.COLOR_WHITE));
-                failed = true;
-            }
-            if(!failed && !data.isPlayerRegistered())
-            {
-                output = ChatUtils.colorString("You must register to play! Type /register to continue.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
-                failed = true;
-            }
-            if(!failed && !data.isPlayerLoggedIn())
+			if (!serverDataListsInitialized)
+			{
+                output = ChatUtils.colorString("Server data has not yet been initialized.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+                goto END;
+			}
+            failed = (data.getAdminLevel() < adminLevel);
+			if(failed) 
+			{
+				output = ChatUtils.colorString("ERROR: Command not found.", ChatUtils.getColorAsHex(ServerData.COLOR_WHITE));
+				goto END;
+			}
+            else failed = (!failed && registered && !data.isPlayerRegistered());
+
+            if(failed) 
+			{
+				output = ChatUtils.colorString("You must register to play! Type /register to continue.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+				goto END;
+			}
+			else failed = (!failed && logged && !data.isPlayerLoggedIn());
+
+			if(failed)
             {
                 output = ChatUtils.colorString("You must login to play! Type /login to continue.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
-                failed = true;
+                goto END;
             }
-			if((!failed && parameters != null) && !parameterCheck(parameters, size))
+			else failed = (!failed && (NAPI.Player.IsPlayerRespawning(player) && mustSpawn));
+
+			if(failed)
+			{
+				output = ChatUtils.colorString("Error: You must spawn to use this command.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+				goto END;
+			}
+			else failed = (!failed && data.getSupportLevel() == 0 && supportLevel > 0);
+
+			if(failed)
+			{
+				output = ChatUtils.colorString("Error: You aren't a helpdesk operator.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+				goto END;
+			}
+			else failed = (!failed && orgCMD && data.getPlayerOrg() == null);
+
+			if(failed)
+			{
+                output = ChatUtils.colorString("Error: You aren't in an Organization.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+                goto END;
+			}
+			else failed = (!failed && orgCMD && orgLevel == 1 && data.getPlayerOrgLevel() == 0);
+
+			if(failed)
+			{
+				output = ChatUtils.colorString("Error: You aren't the (co)leader of an organization.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+				goto END;
+			}
+			else failed = (!failed && orgCMD && orgLevel == 2 && data.getPlayerOrgLevel() < 2);
+
+			if(failed)
+			{
+				output = ChatUtils.colorString("Error: You aren't the leader of an organization.", ChatUtils.getColorAsHex(ServerData.COLOR_RED));
+				goto END;
+			}
+			else failed = ((!failed && parameters != null) && !parameterCheck(parameters, size));
+
+			if(failed)
 			{
 				output = $"Usage: /{parameters[0]}";
 				for(byte i = 1; i <= (size - 1) / 2; i++) output = $"{output} [{parameters[i]}]";
@@ -501,23 +1192,14 @@ namespace e_freeroam.Utilities.ServerUtils
 				failed = true;
 			}
 
-            return failed;
+
+            END: return failed;
         }
 
 		private static bool parameterCheck(string[] checkParams, byte size)
 		{
-			for(byte i = 0; i < size; i++) if(checkParams[i] == "NullCMDStr") return false;
+			for(byte i = 0; i < size; i++) if(checkParams[i] == "NullCMDStr" || checkParams[i] == "NullCMDText") return false;
 			return true;
-		}
-
-		public static short getTargetPlayerID(string target) // Determines whether a valid playerid was given and if not derives it from name.
-		{
-			short playerid = -1;
-
-			foreach(Player player in NAPI.Pools.GetAllPlayers()) if(player.Name.Equals(target)) playerid = ((short) player.Value);
-			if(playerid == -1 && NumberUtils.isNumeric(target, (byte) target.Length)) playerid = NumberUtils.parseShort(target, (byte) target.Length);
-
-			return playerid;
 		}
     }
 }

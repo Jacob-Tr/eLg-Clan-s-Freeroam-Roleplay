@@ -2,6 +2,7 @@
 using e_freeroam.Utilities;
 using e_freeroam.Utilities.ServerUtils;
 using e_freeroam.Utilities.PlayerUtils;
+using System;
 
 namespace e_freeroam_Commands_Admin
 {
@@ -13,17 +14,18 @@ namespace e_freeroam_Commands_Admin
             string failMsg = null;
 			string[] parameters = {"vehicle", "Model Name", "Color 1", "Color 2", model, color1Str, color2Str};
 
-            if(ServerData.commandCheck(user, out failMsg, 4, parameters, ((byte) parameters.Length)))
+            if(ServerData.commandCheck(user, out failMsg, parameters, adminLevel: 4))
             {
                 ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
             }
 
-            int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, (byte) color1Str.Length), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, (byte) color2Str.Length); ;
+			bool failed = false;
+            int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, ref failed), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, ref failed); ;
 
             uint hashKey = (uint)NAPI.Util.GetHashKey(model);
 
-            if(hashKey == 0)
+            if(hashKey == 0 || (hashKey == ((uint) NAPI.Util.GetHashKey("Oracle")) && !String.Equals(model, "Oracle", StringComparison.OrdinalIgnoreCase)))
             {
                 user.SendChatMessage("~r~Error: Invalid vehicle name.");
                 return;
@@ -49,21 +51,23 @@ namespace e_freeroam_Commands_Admin
             ServerData.addVehicle(hashKey, vect, angle, color1, color2, VehicleType.CMD_VEHICLE);
 
             user.SendChatMessage(ChatUtils.colorString($"* You have created a {model}.", ChatUtils.getColorAsHex(ServerData.COLOR_WHITE)));
-            ChatUtils.sendMessageToAdmins(ServerData.COLOR_ADMIN_NOTES_LOG, $"{user.Name} has created a {model}.");
+            ChatUtils.sendMessageToAdmins(ServerData.COLOR_ADMIN_NOTES_LOG, $"{PlayerDataInfo.getPlayerName(user)} has created a {model}.");
         }
 
         [Command("vcolor", "~r~Usage: /vcolor [Color1] [Color2]", GreedyArg=true)]
-        public void VColor(Player user, string color1Str, string color2Str="-1")
+        public void VColor(Player user, string color1Str="NullCMDStr", string color2Str="-1")
         {
             string failMsg = null;
+			string[] parameters = {"vcolor", "Color1", "Color2", color1Str, color2Str};
 
-            if(ServerData.commandCheck(user, out failMsg, 4))
+            if(ServerData.commandCheck(user, out failMsg, parameters, adminLevel: 4))
             {
                 ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
             }
 
-            int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, (byte) color1Str.Length), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, (byte) color2Str.Length); ;
+			bool failed = false;
+            int color1 = e_freeroam.Utilities.NumberUtils.parseInt(color1Str, ref failed), color2 = e_freeroam.Utilities.NumberUtils.parseInt(color2Str, ref failed); ;
 
             if((color1 < 0 || color1 > 159) || color2 != -1 && (color2 < 0 || color2 > 159))
             {

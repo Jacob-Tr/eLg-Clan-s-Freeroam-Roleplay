@@ -1,12 +1,31 @@
 ﻿namespace e_freeroam.Utilities.ServerUtils
 {
+	// Server related
+    public enum ServerDataInfo
+    {
+		ACCOUNTS,
+		IPS_BANNED,
+        WRLDTIME,
+        ORGS,
+		BUSES,
+		PROPS,
+        NULL
+    }
+
     public enum FileTypes
     {
         PLAYER,
         SERVER,
+		BAN,
+		POSITION,
         VEHICLE,
         ORGMETA,
 		OMEMBERS,
+		BUSINESS,
+		STORE,
+		PROPERTY,
+		GASSTATION,
+		ENEX,
         NULL
     }
 
@@ -17,9 +36,12 @@
 		AC
 	}
 
+	// Player related
+
     public enum PlayerInfo
     {
         PASSWORD,
+		ACCID,
         ADLVL,
 		VIPLVL,
 		STLVL,
@@ -29,17 +51,24 @@
         Y,
         Z,
         ANGLE,
+		MUTED,
+		MUTEDTIME,
+		FROZEN,
+		BANNED,
+		TIMES_MUTED,
+		TIMES_KICKED,
+		TIMES_FROZEN,
+		TIMES_BANNED,
 		ORG,
+		ORGLVL,
 		MONEY,
+		SCORE,
+		SCORECOUNTER,
+		BUSINESS,
         NULL
     }
 
-    public enum ServerDataInfo
-    {
-        WRLDTIME,
-        ORGS,
-        NULL
-    }
+	// Vehicle related
 
     public enum VehicleType
     {
@@ -58,6 +87,8 @@
         VEH_Z,
         VEH_ROT
     }
+
+	// Organization related
 
     public enum orgInfo
     {
@@ -84,11 +115,109 @@
 		PRIVATE
 	}
 
+	public enum LawSubtype
+	{
+		POLICE,
+		SWAT,
+		ARMY,
+		PARAMEDIC
+	}
+
+	public enum GangSubtype
+	{
+		GANG,
+		MAFIA,
+		TERRORIST
+	}
+
+	public enum PBSubtype
+	{
+		TRANSPORT,
+		HITMAN,
+		QUARRY,
+		RACING,
+		MECHANIC,
+		OTHER
+	}
+
+	public enum OrgLevels
+	{
+		LEADER,
+		COLEADER,
+		MEMBER
+	}
+
+	// Checkpoint related
+
     public enum CPType
     {
         ORG,
+		BUSINESS,
+		BANK,
+		FOOD,
+		STORE,
+		GAS,
+		MISSION,
         NULL
     }
+
+	// Business related
+
+	public enum BusInfo
+	{
+		OWNER,
+		NAME,
+		X,
+		Y,
+		Z,
+		PRICE,
+		PROFIT,
+		INTERIOR,
+		WORLD
+	}
+
+	// Property related
+
+	public enum PropInfo
+	{
+		OWNER,
+		X,
+		Y,
+		Z,
+		ENEX
+	}
+
+	// Store related
+
+	// Dialog related
+
+	public enum StoreInfo
+	{
+		X,
+		Y,
+		Z,
+		WORLD
+	}
+
+	public enum DialogType
+	{
+		INFO,
+		LIST,
+		INPUT_TEXT,
+		PASSWORD,
+		TABLIST
+	}
+
+	public enum DialogID
+	{
+		DIALOG_REGISTER,
+		DIALOG_CONFIRM,
+		DIALOG_LOGIN,
+		DIALOG_ORG_MENU,
+		DIALOG_ORG_MEMBERS,
+		DIALOG_ORG_COLEADER_CLICK_MEMBER,
+		DIALOG_ORG_REQUEST
+	}
 
     public enum KeyRef
     {

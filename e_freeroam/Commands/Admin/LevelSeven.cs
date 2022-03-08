@@ -13,7 +13,7 @@ namespace e_freeroam.Commands.Admin
         {
             string failMsg = null;
 
-            if(ServerData.commandCheck(user, out failMsg, 4))
+            if(ServerData.commandCheck(user, out failMsg, adminLevel: 4))
             {
                 ChatUtils.sendClientMessage(user, ServerData.COLOR_WHITE, failMsg);
                 return;
